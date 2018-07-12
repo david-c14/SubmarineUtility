@@ -16,15 +16,19 @@ struct ModBrowserWidget : ModuleWidget {
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
 		setPanel(SVG::load(assetPlugin(plugin, "res/LA-108.svg")));
 		unsigned int y = 20;
+		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(10, 150));
+		scrollWidget->box.size.x = 200;
+		scrollWidget->box.size.y = 100;
+		addChild(scrollWidget);
 		for (Plugin *plugin : gPlugins) {
 			debug("%s", plugin->slug.c_str());
 			Label *slug = Widget::create<Label>(Vec(40,y));
 			slug->text = plugin->slug;
-			addChild(slug);
+			scrollWidget->addChild(slug);
 			MyButton *button = Widget::create<MyButton>(Vec(10, y));
 			button->mw = this;
 			button->plugin = plugin;
-			addChild(button);
+			scrollWidget->container->addChild(button);
 			y += 30;
 		}
 
