@@ -40,6 +40,10 @@ void MyButton::onAction(EventAction &e) {
 	for (Model *model : plugin->models) {
 		debug("%s", model->slug.c_str());
 	}
+	for (Widget *widget : gRackWidget->wireContainer->children) {
+		WireWidget *wireWidget = dynamic_cast<WireWidget *>(widget);
+		wireWidget->color = nvgRGB(0xff, 0xc0, 0xc0);
+	}
 }
 
 
