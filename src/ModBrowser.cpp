@@ -1,17 +1,49 @@
 #include "SubmarineUtility.hpp"
+#include "window.hpp"
+
+namespace SubControls {
+
+struct ButtonBase : Component {
+	void onDragStart(EventDragStart &e) override {
+		EventAction eAction;
+		onAction(eAction);
+	}
+};
+
+struct ButtonDragBase : Component {
+	void onDragEnd(EventDragEnd &e) override {
+		EventAction eAction;
+		onAction(eAction);
+	}
+};
+
+struct TextButton : ButtonBase {
+	std::string label;
+	void draw (NVGcontext *vg) override {
+		nvgFontFaceId(vg, gGuiFont->handle);
+		nvgFontSize(vg, 13);
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
+		nvgText(vg, 1, box.size.y / 2, label.c_str(), NULL);
+		Component::draw(vg);
+	}
+};
+
+struct TextDragButton : ButtonDragBase {
+	std::string label;
+	void draw (NVGcontext *vg) override {
+		nvgFontFaceId(vg, gGuiFont->handle);
+		nvgFontSize(vg, 13);
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
+		nvgText(vg, 1, box.size.y / 2, label.c_str(), NULL);
+		Component::draw(vg);
+	}
+};
+
+} // SubControls
 
 struct ModBrowserWidget;
-
-struct MyButton : PB61303Button {
-
-	ModBrowserWidget * mw;
-	Plugin *plugin;
-	Model *model;
-	MyButton() {
-		setSVGs(SVG::load(assetGlobal("res/ComponentLibrary/CKSS_0.svg")),NULL);
-	}
-	void onAction(EventAction &e) override; 
-};
 
 struct BrowserScroller : ScrollWidget {
 	void draw (NVGcontext *vg) override {
@@ -23,64 +55,85 @@ struct BrowserScroller : ScrollWidget {
 	}
 };
 
+struct PluginButton : SubControls::TextButton {
+	ModBrowserWidget *mbw;
+	Plugin *plugin;
+	void onAction(EventAction &e) override;
+};
+
+struct ModelButton : SubControls::TextDragButton {
+	ModBrowserWidget *mbw;
+	Model *model;
+	void onAction(EventAction &e) override;
+};
+
+struct PluginBackButton : SubControls::TextButton {
+	ModBrowserWidget *mbw;
+	void onAction(EventAction &e) override;
+};
+
 struct ModBrowserWidget : ModuleWidget {
 	Widget *scrollContainer;
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
-		setPanel(SVG::load(assetPlugin(plugin, "res/LA-108.svg")));
-		unsigned int y = 20;
+		setPanel(SVG::load(assetPlugin(plugin, "res/ModBrowser.svg")));
 		BrowserScroller *scrollWidget = Widget::create<BrowserScroller>(Vec(10, 20));
 		scrollWidget->box.size.x = box.size.x - 20;
 		scrollWidget->box.size.y = box.size.y - 40;
 		addChild(scrollWidget);
 		scrollContainer = scrollWidget->container;
+		AddPlugins();
+	}
+	void AddPlugins() {
+		scrollContainer->clearChildren();
+		unsigned int y = 0;
 		for (Plugin *plugin : gPlugins) {
-			debug("%s", plugin->slug.c_str());
-			Label *slug = Widget::create<Label>(Vec(40,y));
-			slug->text = plugin->slug;
-			scrollWidget->container->addChild(slug);
-			MyButton *button = Widget::create<MyButton>(Vec(10, y));
-			button->mw = this;
-			button->plugin = plugin;
-			scrollWidget->container->addChild(button);
-			y += 30;
+			PluginButton * pb = Widget::create<PluginButton>(Vec(0, y));
+			pb->mbw = this;
+			pb->plugin = plugin;
+			pb->box.size.x = scrollContainer->box.size.x - 20;
+			pb->box.size.y = 15;
+			pb->label = plugin->slug;
+			scrollContainer->addChild(pb);
+			y += 15;
+		} 
+	}
+	void AddModels(Plugin *plugin) {
+		scrollContainer->clearChildren();
+		PluginBackButton *pbb = Widget::create<PluginBackButton>(Vec(0, 0));
+		pbb->mbw = this;
+		pbb->box.size.x = scrollContainer->box.size.x - 20;
+		pbb->box.size.y = 15;
+		pbb->label = "\xe2\x86\x90 Back";
+		scrollContainer->addChild(pbb);
+		unsigned int y = 15;
+		for (Model *model : plugin->models) {
+			ModelButton *mb = Widget::create<ModelButton>(Vec(0, y));
+			mb->mbw = this;
+			mb->model = model;
+			mb->box.size.x = scrollContainer->box.size.x - 20;
+			mb->box.size.y = 15;
+			mb->label = model->name;
+			scrollContainer->addChild(mb);
+			y += 15;
 		}
-
 	}
 };
 
-void MyButton::onAction(EventAction &e) {
-	if (plugin) {
-		while (mw->scrollContainer->children.size()) {
-			Widget * w = mw->scrollContainer->children.front();
-			mw->scrollContainer->removeChild(w);
-	//		delete w;
-	};
-		unsigned int y = 20;
-		for (Model *model : plugin->models) {
-			Label *slug = Widget::create<Label>(Vec(40,y));	
-			slug->text = model->slug;
-			mw->scrollContainer->addChild(slug);
-			MyButton *button = Widget::create<MyButton>(Vec(10,y));
-			button->mw = mw;
-			button->model = model;
-			mw->scrollContainer->addChild(button);
-			y += 30;
-		}
-	}
-	if (model) {
-		ModuleWidget *moduleWidget = model->createModuleWidget();
-		if (!moduleWidget)
-			return;
-		gRackWidget->addModule(moduleWidget);
-		// Move module nearest to the mouse position
-		moduleWidget->box.pos = gRackWidget->lastMousePos.minus(moduleWidget->box.size.div(2));
-		gRackWidget->requestModuleBoxNearest(moduleWidget, moduleWidget->box);
-	}
-	//for (Widget *widget : gRackWidget->wireContainer->children) {
-		//WireWidget *wireWidget = dynamic_cast<WireWidget *>(widget);
-		//wireWidget->color = nvgRGB(0xff, 0xc0, 0xc0);
-	//}
+void PluginButton::onAction(EventAction &e) {
+	mbw->AddModels(plugin);
 }
 
+void ModelButton::onAction(EventAction &e) {
+	ModuleWidget *moduleWidget = model->createModuleWidget();
+	if (!moduleWidget)
+		return;
+	gRackWidget->addModule(moduleWidget);
+	moduleWidget->box.pos = gRackWidget->lastMousePos.minus(moduleWidget->box.size.div(2));
+	gRackWidget->requestModuleBoxNearest(moduleWidget, moduleWidget->box);
+}
+
+void PluginBackButton::onAction(EventAction &e) {
+	mbw->AddPlugins();
+}
 
 Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("SubmarineUtility", "ModBrowser", "ModuleBrowser", UTILITY_TAG);
