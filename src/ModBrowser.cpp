@@ -88,6 +88,23 @@ struct TagIcon : SubControls::ButtonBase {
 	void onAction(EventAction &e) override;
 };
 
+struct FavIcon : SubControls::ButtonBase {
+	ModBrowserWidget *mbw;
+	int selected = 0;
+	FavIcon() {
+		box.size.x = 30;
+		box.size.y = 30;
+	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
+		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+		nvgFill(vg);
+		Component::draw(vg);
+	}
+	void onAction(EventAction &e) override;
+};
+
 struct BrowserScroller : ScrollWidget {
 	void draw (NVGcontext *vg) override {
 		nvgBeginPath(vg);
@@ -130,6 +147,7 @@ struct ModBrowserWidget : ModuleWidget {
 	Widget *scrollContainer;
 	PluginIcon *pluginIcon;
 	TagIcon *tagIcon;
+	FavIcon *favIcon;
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
 		setPanel(SVG::load(assetPlugin(plugin, "res/ModBrowser.svg")));
 		pluginIcon = Widget::create<PluginIcon>(Vec(10, 20));
@@ -139,13 +157,20 @@ struct ModBrowserWidget : ModuleWidget {
 		tagIcon = Widget::create<TagIcon>(Vec(40, 20));
 		tagIcon->mbw = this;
 		addChild(tagIcon);
+		favIcon = Widget::create<FavIcon>(Vec(70, 20));
+		favIcon->mbw = this;
+		addChild(favIcon);
 		BrowserScroller *scrollWidget = Widget::create<BrowserScroller>(Vec(10, 50));
 		scrollWidget->box.size.x = box.size.x - 20;
 		scrollWidget->box.size.y = box.size.y - 70;
 		addChild(scrollWidget);
 		scrollContainer = scrollWidget->container;
 		AddPlugins();
-		AddTags();
+	}
+	void ResetIcons() {
+		pluginIcon->selected = 0;
+		tagIcon->selected = 0;
+		favIcon->selected = 0;
 	}
 	void AddPlugins() {
 		scrollContainer->clearChildren();
@@ -174,6 +199,49 @@ struct ModBrowserWidget : ModuleWidget {
 			scrollContainer->addChild(tb);
 			y += 15;
 		}
+	}
+	void AddFavorites() {
+		scrollContainer->clearChildren();
+		unsigned int y = 0;
+		FILE *file = fopen(assetLocal("settings.json").c_str(), "r");
+		if (!file)
+			return;
+		json_error_t error;
+		json_t *rootJ = json_loadf(file, 0, &error);
+		if (!rootJ) {
+			warn("JSON parsing error at %s %d:%d %s", error.source, error.line, error.column, error.text);
+			fclose(file);
+			return;
+		}
+		json_t *modb = json_object_get(rootJ, "moduleBrowser");
+		if (modb) {
+			json_t *favoritesJ = json_object_get(modb, "favorites");
+			if (favoritesJ) {
+				size_t i;
+				json_t *favoriteJ;
+				json_array_foreach(favoritesJ, i, favoriteJ) {
+					json_t *pluginJ = json_object_get(favoriteJ, "plugin");
+					json_t *modelJ = json_object_get(favoriteJ, "model");
+					if (!pluginJ || !modelJ)
+						continue;
+					std::string pluginSlug = json_string_value(pluginJ);
+					std::string modelSlug = json_string_value(modelJ);
+					Model *model = pluginGetModel(pluginSlug, modelSlug);
+					if (!model)
+						continue;
+					ModelButton *mb = Widget::create<ModelButton>(Vec(0, y));
+					mb->mbw = this;
+					mb->model = model;
+					mb->box.size.x = scrollContainer->box.size.x - 20;
+					mb->box.size.y = 15;
+					mb->label = model->plugin->slug + " " + model->name;
+					scrollContainer->addChild(mb);
+					y += 15;	
+				}
+			}
+		}
+		json_decref(rootJ);
+		fclose(file);
 	}
 	void AddModels(Plugin *plugin) {
 		scrollContainer->clearChildren();
@@ -224,15 +292,21 @@ struct ModBrowserWidget : ModuleWidget {
 };
 
 void PluginIcon::onAction(EventAction &e) {
-	mbw->tagIcon->selected = 0;
+	mbw->ResetIcons();
 	mbw->pluginIcon->selected = 1;
 	mbw->AddPlugins();
 }
 
 void TagIcon::onAction(EventAction &e) {
-	mbw->pluginIcon->selected = 0;
+	mbw->ResetIcons();
 	mbw->tagIcon->selected = 1;
 	mbw->AddTags();
+}
+
+void FavIcon::onAction(EventAction &e) {
+	mbw->pluginIcon->selected = 0;
+	mbw->favIcon->selected = 1;
+	mbw->AddFavorites();
 }
 
 void PluginButton::onAction(EventAction &e) {
