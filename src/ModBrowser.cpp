@@ -45,6 +45,49 @@ struct TextDragButton : ButtonDragBase {
 
 struct ModBrowserWidget;
 
+struct PluginIcon : SubControls::ButtonBase {
+	ModBrowserWidget *mbw;
+	int selected = 0;
+	PluginIcon() {
+		box.size.x = 30;
+		box.size.y = 30;
+	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
+		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+		nvgFill(vg);
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, 7, 15, 16, 10, 2);
+		nvgRect(vg, 7, 15, 16, 3);
+		nvgRoundedRect(vg, 9, 6, 3, 12, 2);
+		nvgRoundedRect(vg, 18, 6, 3, 12, 2);
+		nvgRect(vg, 14, 24, 2, 4);
+		nvgFillColor(vg, nvgRGB(0x80, 0x80, 0x80));
+		nvgFill(vg);
+
+		Component::draw(vg);
+	}
+	void onAction(EventAction &e) override;
+};
+
+struct TagIcon : SubControls::ButtonBase {
+	ModBrowserWidget *mbw;
+	int selected = 0;
+	TagIcon() {
+		box.size.x = 30;
+		box.size.y = 30;
+	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
+		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+		nvgFill(vg);
+		Component::draw(vg);
+	}
+	void onAction(EventAction &e) override;
+};
+
 struct BrowserScroller : ScrollWidget {
 	void draw (NVGcontext *vg) override {
 		nvgBeginPath(vg);
@@ -61,6 +104,12 @@ struct PluginButton : SubControls::TextButton {
 	void onAction(EventAction &e) override;
 };
 
+struct TagButton : SubControls::TextButton {
+	ModBrowserWidget *mbw;
+	unsigned int tag;
+	void onAction(EventAction &e) override;
+};
+
 struct ModelButton : SubControls::TextDragButton {
 	ModBrowserWidget *mbw;
 	Model *model;
@@ -72,16 +121,31 @@ struct PluginBackButton : SubControls::TextButton {
 	void onAction(EventAction &e) override;
 };
 
+struct TagBackButton : SubControls::TextButton {
+	ModBrowserWidget *mbw;
+	void onAction(EventAction &e) override;
+};
+
 struct ModBrowserWidget : ModuleWidget {
 	Widget *scrollContainer;
+	PluginIcon *pluginIcon;
+	TagIcon *tagIcon;
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
 		setPanel(SVG::load(assetPlugin(plugin, "res/ModBrowser.svg")));
-		BrowserScroller *scrollWidget = Widget::create<BrowserScroller>(Vec(10, 20));
+		pluginIcon = Widget::create<PluginIcon>(Vec(10, 20));
+		pluginIcon->selected = 1;
+		pluginIcon->mbw = this;
+		addChild(pluginIcon);
+		tagIcon = Widget::create<TagIcon>(Vec(40, 20));
+		tagIcon->mbw = this;
+		addChild(tagIcon);
+		BrowserScroller *scrollWidget = Widget::create<BrowserScroller>(Vec(10, 50));
 		scrollWidget->box.size.x = box.size.x - 20;
-		scrollWidget->box.size.y = box.size.y - 40;
+		scrollWidget->box.size.y = box.size.y - 70;
 		addChild(scrollWidget);
 		scrollContainer = scrollWidget->container;
 		AddPlugins();
+		AddTags();
 	}
 	void AddPlugins() {
 		scrollContainer->clearChildren();
@@ -96,6 +160,20 @@ struct ModBrowserWidget : ModuleWidget {
 			scrollContainer->addChild(pb);
 			y += 15;
 		} 
+	}
+	void AddTags() {
+		scrollContainer->clearChildren();
+		unsigned int y = 0;
+		for (unsigned int i = 1; i < NUM_TAGS; i++) {
+			TagButton *tb = Widget::create<TagButton>(Vec(0, y));
+			tb->mbw = this;
+			tb->tag = i;
+			tb->box.size.x = scrollContainer->box.size.x - 20;
+			tb->box.size.y = 15;
+			tb->label = gTagNames[i];
+			scrollContainer->addChild(tb);
+			y += 15;
+		}
 	}
 	void AddModels(Plugin *plugin) {
 		scrollContainer->clearChildren();
@@ -117,10 +195,52 @@ struct ModBrowserWidget : ModuleWidget {
 			y += 15;
 		}
 	}
+	void AddModels(unsigned int tag) {
+		scrollContainer->clearChildren();
+		TagBackButton *tbb = Widget::create<TagBackButton>(Vec(0, 0));
+		tbb->mbw = this;
+		tbb->box.size.x = scrollContainer->box.size.x - 20;
+		tbb->box.size.y = 15;
+		tbb->label = "\xe2\x86\x90 Back";
+		scrollContainer->addChild(tbb);
+		unsigned int y = 15;
+		for (Plugin *plugin : gPlugins) {
+			for (Model *model : plugin->models) {
+				for (ModelTag mt : model->tags) {
+					if (mt == tag) {
+						ModelButton *mb = Widget::create<ModelButton>(Vec(0, y));
+						mb->mbw = this;
+						mb->model = model;
+						mb->box.size.x = scrollContainer->box.size.x - 20;
+						mb->box.size.y = 15;
+						mb->label = model->name;
+						scrollContainer->addChild(mb);
+						y += 15;
+					}
+				} 
+			}
+		}
+	}
 };
+
+void PluginIcon::onAction(EventAction &e) {
+	mbw->tagIcon->selected = 0;
+	mbw->pluginIcon->selected = 1;
+	mbw->AddPlugins();
+}
+
+void TagIcon::onAction(EventAction &e) {
+	mbw->pluginIcon->selected = 0;
+	mbw->tagIcon->selected = 1;
+	mbw->AddTags();
+}
 
 void PluginButton::onAction(EventAction &e) {
 	mbw->AddModels(plugin);
+}
+
+void TagButton::onAction(EventAction &e) {
+	mbw->AddModels(tag);
 }
 
 void ModelButton::onAction(EventAction &e) {
@@ -134,6 +254,10 @@ void ModelButton::onAction(EventAction &e) {
 
 void PluginBackButton::onAction(EventAction &e) {
 	mbw->AddPlugins();
+}
+
+void TagBackButton::onAction(EventAction &e) {
+	mbw->AddTags();
 }
 
 Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("SubmarineUtility", "ModBrowser", "ModuleBrowser", UTILITY_TAG);
