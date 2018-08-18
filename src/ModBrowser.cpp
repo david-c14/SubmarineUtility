@@ -3,6 +3,16 @@
 
 namespace SubControls {
 
+struct BackPanel : OpaqueWidget {
+	void draw (NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRect(vg, 0, 0, box.size.x, box.size.y);
+		nvgFillColor(vg, nvgRGB(0, 0, 0));
+		nvgFill(vg);
+		OpaqueWidget::draw(vg);
+	}
+};
+
 struct ButtonBase : Component {
 	void onDragEnd(EventDragEnd &e) override {
 		EventAction eAction;
@@ -92,14 +102,56 @@ struct FavIcon : SubControls::ButtonBase {
 	void onAction(EventAction &e) override;
 };
 
-struct BrowserScroller : ScrollWidget {
-	void draw (NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRect(vg, 0, 0, box.size.x, box.size.y);
-		nvgFillColor(vg, nvgRGB(0, 0, 0));
-		nvgFill(vg);	
-		ScrollWidget::draw(vg);
+struct LoadIcon : SubControls::ButtonBase {
+	ModBrowserWidget *mbw;
+	int selected = 0;
+	LoadIcon() {
+		box.size.x = 30;
+		box.size.y = 30;
 	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
+		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+		nvgFill(vg);
+		Component::draw(vg);
+	}
+	void onAction(EventAction &e) override;
+};
+
+struct MinimizeIcon : SubControls::ButtonBase {
+	ModBrowserWidget *mbw;
+	MinimizeIcon() {
+		box.size.x = 30;
+		box.size.y = 30;
+	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
+		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+		nvgFill(vg);
+		Component::draw(vg);
+	}
+	void onAction(EventAction &e) override;
+};
+
+struct MaximizeButton : SubControls::ButtonBase {
+	ModBrowserWidget *mbw;
+	MaximizeButton() {
+		box.size.x = 15;
+		box.size.y = 30;
+	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgMoveTo(vg, 2, 4);
+		nvgLineTo(vg, 13, 15);
+		nvgLineTo(vg, 2, 26);
+		nvgClosePath(vg);
+		nvgFillColor(vg, nvgRGB(0x71, 0x9f, 0xcf));
+		nvgFill(vg);
+		Component::draw(vg);
+	}
+	void onAction(EventAction &e) override;
 };
 
 struct PluginButton : SubControls::TextButton {
@@ -131,28 +183,50 @@ struct TagBackButton : SubControls::TextButton {
 };
 
 struct ModBrowserWidget : ModuleWidget {
+	SubControls::BackPanel *backPanel;
 	Widget *scrollContainer;
 	PluginIcon *pluginIcon;
 	TagIcon *tagIcon;
 	FavIcon *favIcon;
+	MinimizeIcon *minimizeIcon;
+	MaximizeButton *maximizeButton;
 	float width;
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
 		setPanel(SVG::load(assetPlugin(plugin, "res/ModBrowser.svg")));
-		pluginIcon = Widget::create<PluginIcon>(Vec(10, 20));
+		
+		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 30));
+		maximizeButton->visible = false;
+		maximizeButton->mbw = this;
+		addChild(maximizeButton);
+		
+		backPanel = Widget::create<SubControls::BackPanel>(Vec(10, 20));
+		backPanel->box.size.x = box.size.x - 20;
+		backPanel->box.size.y = box.size.y - 40;
+		addChild(backPanel);
+
+		pluginIcon = Widget::create<PluginIcon>(Vec(0, 0));
 		pluginIcon->selected = 1;
 		pluginIcon->mbw = this;
-		addChild(pluginIcon);
-		tagIcon = Widget::create<TagIcon>(Vec(40, 20));
+		backPanel->addChild(pluginIcon);
+
+		tagIcon = Widget::create<TagIcon>(Vec(30, 0));
 		tagIcon->mbw = this;
-		addChild(tagIcon);
-		favIcon = Widget::create<FavIcon>(Vec(70, 20));
+		backPanel->addChild(tagIcon);
+
+		favIcon = Widget::create<FavIcon>(Vec(60, 0));
 		favIcon->mbw = this;
-		addChild(favIcon);
-		BrowserScroller *scrollWidget = Widget::create<BrowserScroller>(Vec(10, 50));
+		backPanel->addChild(favIcon);
+	
+		minimizeIcon = Widget::create<MinimizeIcon>(Vec(90, 0));
+		minimizeIcon->mbw = this;
+		backPanel->addChild(minimizeIcon);	
+
+		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 30));
 		scrollWidget->box.size.x = box.size.x - 20;
 		scrollWidget->box.size.y = box.size.y - 70;
-		width = scrollWidget->box.size.y - 20;
-		addChild(scrollWidget);
+		width = scrollWidget->box.size.x - 20;
+		backPanel->addChild(scrollWidget);
+
 		scrollContainer = scrollWidget->container;
 		AddPlugins();
 	}
@@ -278,6 +352,22 @@ struct ModBrowserWidget : ModuleWidget {
 			}
 		}
 	}
+	void Minimize(unsigned int minimize) {
+		if (minimize) {
+			panel->setBackground(SVG::load(assetPlugin(plugin, "res/ModBrowserMin.svg")));
+			box.size.x = panel->box.size.x;
+			panel->dirty = true;
+			backPanel->visible = false;
+			maximizeButton->visible = true;
+		}
+		else {
+			panel->setBackground(SVG::load(assetPlugin(plugin, "res/ModBrowser.svg")));
+			box.size.x = panel->box.size.x;
+			panel->dirty = true;
+			backPanel->visible = true;
+			maximizeButton->visible = false;
+		}
+	}
 };
 
 void PluginIcon::onAction(EventAction &e) {
@@ -296,6 +386,17 @@ void FavIcon::onAction(EventAction &e) {
 	mbw->pluginIcon->selected = 0;
 	mbw->favIcon->selected = 1;
 	mbw->AddFavorites();
+}
+
+void LoadIcon::onAction(EventAction &e) {
+}
+
+void MinimizeIcon::onAction(EventAction &e) {
+	mbw->Minimize(true);
+}
+
+void MaximizeButton::onAction(EventAction &e) {
+	mbw->Minimize(false);
 }
 
 void PluginButton::onAction(EventAction &e) {
