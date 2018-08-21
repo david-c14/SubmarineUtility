@@ -1,5 +1,7 @@
 #include "SubmarineUtility.hpp"
+#include <map>
 #include "window.hpp"
+#include "osdialog.h"
 
 struct ModBrowserWidget;
 struct ListElement {
@@ -44,7 +46,6 @@ struct TextButton : SubControls::ButtonBase {
 		label1Width = bounds[2] - bounds[0];
 		nvgTextBounds(vg, 1, box.size.y / 2, label2.c_str(), NULL, bounds);
 		label2Width = bounds[2] - bounds[0];	
-		debug("%s %f %f", label1.c_str(), label1Width, label2Width);
 	}
 	void draw (NVGcontext *vg) override {
 		if (label1Width == 0.0f)
@@ -251,6 +252,7 @@ struct ModBrowserWidget : ModuleWidget {
 	PluginIcon *pluginIcon;
 	TagIcon *tagIcon;
 	FavIcon *favIcon;
+	LoadIcon *loadIcon;
 	MinimizeIcon *minimizeIcon;
 	MaximizeButton *maximizeButton;
 	float width;
@@ -287,7 +289,11 @@ struct ModBrowserWidget : ModuleWidget {
 		favIcon->mbw = this;
 		backPanel->addChild(favIcon);
 	
-		minimizeIcon = Widget::create<MinimizeIcon>(Vec(90, 0));
+		loadIcon = Widget::create<LoadIcon>(Vec(90, 0));
+		loadIcon->mbw = this;
+		backPanel->addChild(loadIcon);
+	
+		minimizeIcon = Widget::create<MinimizeIcon>(Vec(120, 0));
 		minimizeIcon->mbw = this;
 		backPanel->addChild(minimizeIcon);	
 
@@ -434,6 +440,101 @@ struct ModBrowserWidget : ModuleWidget {
 		}	
 		SetListWidth();
 	}
+	void Load() {
+		std::string dir;
+		if (gRackWidget->lastPath.empty()) {
+			dir = assetLocal("patches");
+			systemCreateDirectory(dir);
+		}
+		else {
+			dir = stringDirectory(gRackWidget->lastPath);
+		}
+		osdialog_filters *filters = osdialog_filters_parse(PATCH_FILTERS.c_str());
+		char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
+		if (path) {
+			Load(path);
+			gRackWidget->lastPath = path;
+			free(path);
+		}
+		osdialog_filters_free(filters);
+	}
+	void Load(std::string filename) {
+		FILE *file = fopen(filename.c_str(), "r");
+		if (!file) {	
+			debug("Unable to open patch %s", filename.c_str());
+			return;
+		}
+
+		json_error_t error;
+		json_t *rootJ = json_loadf(file, 0, &error);
+		if (rootJ) {
+			Load(rootJ);
+			json_decref(rootJ);
+		}
+		else {
+			std::string message = stringf("JSON parsing error at %s %d:%d %s", error.source, error.line, error.column, error.text);
+			osdialog_message(OSDIALOG_WARNING, OSDIALOG_OK, message.c_str());
+		}		
+		fclose(file);
+	}
+	void Load(json_t *rootJ) {
+		std::string message;
+		//load modules
+		std::map<int, ModuleWidget *> moduleWidgets;
+		json_t *modulesJ = json_object_get(rootJ, "modules");
+		if (!modulesJ) return;
+		size_t moduleId;
+		json_t *moduleJ;
+		json_array_foreach(modulesJ, moduleId, moduleJ) {
+			ModuleWidget *moduleWidget = gRackWidget->moduleFromJson(moduleJ);
+			if (moduleWidget) {
+				json_t *posJ = json_object_get(moduleJ, "pos");
+				double x, y;
+				json_unpack(posJ, "[F, F]", &x, &y);
+				Vec pos = Vec(x,y);
+				moduleWidget->box.pos = pos.mult(RACK_GRID_SIZE);
+				moduleWidgets[moduleId] = moduleWidget;
+			}
+		}
+		//find space for modules and arrange
+		//wires
+		json_t *wiresJ = json_object_get(rootJ, "wires");
+		if (!wiresJ) return;
+		size_t wireId;
+		json_t *wireJ;
+		json_array_foreach(wiresJ, wireId, wireJ) {
+			int outputModuleId = json_integer_value(json_object_get(wireJ, "outputModuleId"));
+			int outputId = json_integer_value(json_object_get(wireJ, "outputId"));
+			int inputModuleId = json_integer_value(json_object_get(wireJ, "inputModuleId"));
+			int inputId = json_integer_value(json_object_get(wireJ, "inputId"));
+			ModuleWidget *outputModuleWidget = moduleWidgets[outputModuleId];
+			if (!outputModuleWidget) continue;
+			ModuleWidget *inputModuleWidget = moduleWidgets[inputModuleId];
+			if (!inputModuleWidget) continue;
+			Port *outputPort = NULL;
+			Port *inputPort = NULL;
+			for (Port *port : outputModuleWidget->outputs) {
+				if (port->portId == outputId) {
+					outputPort = port;
+					break;
+				}
+			}
+			for (Port *port : inputModuleWidget->inputs) {
+				if (port->portId == inputId) {
+					inputPort = port;
+					break;
+				}
+			}
+			if (!outputPort || !inputPort)
+				continue;
+			WireWidget *wireWidget = new WireWidget();
+			wireWidget->fromJson(wireJ);
+			wireWidget->outputPort = outputPort;
+			wireWidget->inputPort = inputPort;
+			wireWidget->updateWire();
+			gRackWidget->wireContainer->addChild(wireWidget);
+		}
+	}
 	void Minimize(unsigned int minimize) {
 		if (minimize) {
 			panel->setBackground(minimizedSVG);
@@ -473,6 +574,7 @@ void FavIcon::onAction(EventAction &e) {
 }
 
 void LoadIcon::onAction(EventAction &e) {
+	mbw->Load();
 }
 
 void MinimizeIcon::onAction(EventAction &e) {
