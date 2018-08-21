@@ -1,6 +1,14 @@
 #include "SubmarineUtility.hpp"
 #include "window.hpp"
 
+struct ModBrowserWidget;
+struct ListElement {
+	ModBrowserWidget *mbw;
+	virtual void onAction(EventAction &e) { debug ("Not Implemented"); }
+	virtual std::string GetLabelOne() { return std::string("Label 1"); };
+	virtual std::string GetLabelTwo() { return std::string("Label 2"); };
+};
+
 namespace SubControls {
 
 struct BackPanel : OpaqueWidget {
@@ -20,12 +28,30 @@ struct ButtonBase : Component {
 	}
 };
 
-struct TextButton : ButtonBase {
-	std::string label;
+} // SubControls
+
+struct TextButton : SubControls::ButtonBase {
+	std::string label1;
+	std::string label2;
+	std::shared_ptr<ListElement> element;
+	float label1Width = 0;
+	float label2Width = 0;	
+	void CalculateSizes(NVGcontext *vg) {
+		nvgFontFaceId(vg, gGuiFont->handle);
+		nvgFontSize(vg, 13);
+		float bounds[4];
+		nvgTextBounds(vg, 1, box.size.y / 2, label1.c_str(), NULL, bounds);
+		label1Width = bounds[2] - bounds[0];
+		nvgTextBounds(vg, 1, box.size.y / 2, label2.c_str(), NULL, bounds);
+		label2Width = bounds[2] - bounds[0];	
+		debug("%s %f %f", label1.c_str(), label1Width, label2Width);
+	}
 	void draw (NVGcontext *vg) override {
+		if (label1Width == 0.0f)
+			CalculateSizes(vg);
 		if (gDraggedWidget == this) {
 			nvgBeginPath(vg);
-			nvgRect(vg, 0, 0, box.size.x, box.size.y);
+			nvgRect(vg, 0, 0, box.size.x - 2, box.size.y);
 			nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
 			nvgFill(vg);
 		}
@@ -33,14 +59,22 @@ struct TextButton : ButtonBase {
 		nvgFontSize(vg, 13);
 		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
 		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
-		nvgText(vg, 1, box.size.y / 2, label.c_str(), NULL);
+		nvgText(vg, 1, box.size.y / 2, label1.c_str(), NULL);
+		nvgFillColor(vg, nvgRGB(0x80, 0x80, 0x80));
+		nvgTextAlign(vg, NVG_ALIGN_MIDDLE | NVG_ALIGN_RIGHT);
+		nvgText(vg, box.size.x - 1, box.size.y / 2, label2.c_str(), NULL);
 		Component::draw(vg);
+	}
+	void GetLabels() {
+		label1 = element->GetLabelOne();
+		label2 = element->GetLabelTwo();
+	}
+	void onAction(EventAction &e) override {
+		element->onAction(e);
 	}
 };
 
-} // SubControls
-
-struct ModBrowserWidget;
+// Icons
 
 struct PluginIcon : SubControls::ButtonBase {
 	ModBrowserWidget *mbw;
@@ -154,31 +188,60 @@ struct MaximizeButton : SubControls::ButtonBase {
 	void onAction(EventAction &e) override;
 };
 
-struct PluginButton : SubControls::TextButton {
-	ModBrowserWidget *mbw;
+// Elements
+
+struct PluginElement : ListElement {
 	Plugin *plugin;
+	std::string GetLabelOne() override {
+		return plugin->slug;
+	}
+	std::string GetLabelTwo() override {
+		return plugin->slug;
+	} 
 	void onAction(EventAction &e) override;
 };
 
-struct TagButton : SubControls::TextButton {
-	ModBrowserWidget *mbw;
+struct TagElement : ListElement {
 	unsigned int tag;
+	std::string GetLabelOne() override {
+		return gTagNames[tag];
+	}
+	std::string GetLabelTwo() override {
+		return gTagNames[tag];
+	}
 	void onAction(EventAction &e) override;
 };
 
-struct ModelButton : SubControls::TextButton {
-	ModBrowserWidget *mbw;
+struct ModelElement : ListElement {
 	Model *model;
+	std::string GetLabelOne() override {
+		return model->name;
+	}
+	std::string GetLabelTwo() override {
+		return model->plugin->slug;
+	}
 	void onAction(EventAction &e) override;
 };
 
-struct PluginBackButton : SubControls::TextButton {
-	ModBrowserWidget *mbw;
+struct PluginBackElement : ListElement {
+	std::string label2;
+	std::string GetLabelOne() override {
+		return std::string("\xe2\x86\x90 Back");
+	}
+	std::string GetLabelTwo() override {
+		return label2;
+	}
 	void onAction(EventAction &e) override;
 };
 
-struct TagBackButton : SubControls::TextButton {
-	ModBrowserWidget *mbw;
+struct TagBackElement : ListElement {
+	std::string label2;
+	std::string GetLabelOne() override {
+		return std::string("\xe2\x86\x90 Back");
+	}
+	std::string GetLabelTwo() override {
+		return label2;
+	}
 	void onAction(EventAction &e) override;
 };
 
@@ -191,8 +254,15 @@ struct ModBrowserWidget : ModuleWidget {
 	MinimizeIcon *minimizeIcon;
 	MaximizeButton *maximizeButton;
 	float width;
+	std::list<std::shared_ptr<PluginElement>> pluginList;
+	std::list<std::shared_ptr<TagElement>> tagList;
+	std::list<std::shared_ptr<ModelElement>> modelList;
+	std::shared_ptr<SVG> maximizedSVG;
+	std::shared_ptr<SVG> minimizedSVG;
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
-		setPanel(SVG::load(assetPlugin(plugin, "res/ModBrowser.svg")));
+		maximizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowser.svg"));
+		minimizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowserMin.svg"));	
+		setPanel(maximizedSVG);
 		
 		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 30));
 		maximizeButton->visible = false;
@@ -228,6 +298,27 @@ struct ModBrowserWidget : ModuleWidget {
 		backPanel->addChild(scrollWidget);
 
 		scrollContainer = scrollWidget->container;
+		for (Plugin *plugin : gPlugins) {
+			std::shared_ptr<PluginElement> pe = std::make_shared<PluginElement>();
+			pe->mbw = this;
+			pe->plugin = plugin;
+			pluginList.push_back(pe);
+		}
+		for (unsigned int i = 1; i < NUM_TAGS; i++) {
+			std::shared_ptr<TagElement> te = std::make_shared<TagElement>();
+			te->mbw = this;
+			te->tag = i;
+			tagList.push_back(te);
+		}
+		for (Plugin *plugin : gPlugins) {
+			for (Model *model : plugin->models) {
+				std::shared_ptr<ModelElement> me = std::make_shared<ModelElement>();
+				me->mbw = this;
+				me->model = model;
+				modelList.push_back(me);
+			}
+		}
+		
 		AddPlugins();
 	}
 	void ResetIcons() {
@@ -235,33 +326,39 @@ struct ModBrowserWidget : ModuleWidget {
 		tagIcon->selected = 0;
 		favIcon->selected = 0;
 	}
+	void SetListWidth() {
+		float width = scrollContainer->parent->box.size.x;
+		if (scrollContainer->children.size() * 15 > scrollContainer->parent->box.size.y)
+			width -= 13;
+		for (Widget *w : scrollContainer->children) {
+			w->box.size.x = width;
+		}
+	}
+	void AddElement(std::shared_ptr<ListElement> le, float y) {
+		TextButton *tb = Widget::create<TextButton>(Vec(0, y));
+		tb->element = le;
+		tb->GetLabels();
+		tb->box.size.x = width;
+		tb->box.size.y = 15;
+		scrollContainer->addChild(tb);
+	}
 	void AddPlugins() {
 		scrollContainer->clearChildren();
 		unsigned int y = 0;
-		for (Plugin *plugin : gPlugins) {
-			PluginButton * pb = Widget::create<PluginButton>(Vec(0, y));
-			pb->mbw = this;
-			pb->plugin = plugin;
-			pb->box.size.x = width;
-			pb->box.size.y = 15;
-			pb->label = plugin->slug;
-			scrollContainer->addChild(pb);
+		for (std::shared_ptr<PluginElement> pe : pluginList) {
+			AddElement(pe, y);			
 			y += 15;
-		} 
+		}
+		SetListWidth();
 	}
 	void AddTags() {
 		scrollContainer->clearChildren();
 		unsigned int y = 0;
-		for (unsigned int i = 1; i < NUM_TAGS; i++) {
-			TagButton *tb = Widget::create<TagButton>(Vec(0, y));
-			tb->mbw = this;
-			tb->tag = i;
-			tb->box.size.x = width;
-			tb->box.size.y = 15;
-			tb->label = gTagNames[i];
-			scrollContainer->addChild(tb);
+		for (std::shared_ptr<TagElement> te : tagList) {
+			AddElement(te, y);
 			y += 15;
 		}
+		SetListWidth();
 	}
 	void AddFavorites() {
 		scrollContainer->clearChildren();
@@ -292,76 +389,61 @@ struct ModBrowserWidget : ModuleWidget {
 					Model *model = pluginGetModel(pluginSlug, modelSlug);
 					if (!model)
 						continue;
-					ModelButton *mb = Widget::create<ModelButton>(Vec(0, y));
-					mb->mbw = this;
-					mb->model = model;
-					mb->box.size.x = width;
-					mb->box.size.y = 15;
-					mb->label = model->plugin->slug + " " + model->name;
-					scrollContainer->addChild(mb);
-					y += 15;	
+					for (std::shared_ptr<ModelElement> me : modelList) {
+						if (me->model == model) {
+							AddElement(me, y);
+							y += 15;
+						}
+					}
 				}
 			}
 		}
 		json_decref(rootJ);
 		fclose(file);
+		SetListWidth();
 	}
 	void AddModels(Plugin *plugin) {
 		scrollContainer->clearChildren();
-		PluginBackButton *pbb = Widget::create<PluginBackButton>(Vec(0, 0));
-		pbb->mbw = this;
-		pbb->box.size.x = width;
-		pbb->box.size.y = 15;
-		pbb->label = "\xe2\x86\x90 Back";
-		scrollContainer->addChild(pbb);
+		std::shared_ptr<PluginBackElement> pbe = std::make_shared<PluginBackElement>();	
+		pbe->mbw = this;
+		pbe->label2 = plugin->slug;
+		AddElement(pbe, 0);
 		unsigned int y = 15;
-		for (Model *model : plugin->models) {
-			ModelButton *mb = Widget::create<ModelButton>(Vec(0, y));
-			mb->mbw = this;
-			mb->model = model;
-			mb->box.size.x = width;
-			mb->box.size.y = 15;
-			mb->label = model->name;
-			scrollContainer->addChild(mb);
-			y += 15;
+		for (std::shared_ptr<ModelElement> me : modelList) {
+			if (me->model->plugin == plugin) {
+				AddElement(me, y);
+				y += 15;
+			}
 		}
+		SetListWidth();
 	}
 	void AddModels(unsigned int tag) {
 		scrollContainer->clearChildren();
-		TagBackButton *tbb = Widget::create<TagBackButton>(Vec(0, 0));
-		tbb->mbw = this;
-		tbb->box.size.x = width;
-		tbb->box.size.y = 15;
-		tbb->label = "\xe2\x86\x90 Back";
-		scrollContainer->addChild(tbb);
+		std::shared_ptr<TagBackElement> tbe = std::make_shared<TagBackElement>();
+		tbe->mbw = this;
+		tbe->label2 = gTagNames[tag];
+		AddElement(tbe, 0);
 		unsigned int y = 15;
-		for (Plugin *plugin : gPlugins) {
-			for (Model *model : plugin->models) {
-				for (ModelTag mt : model->tags) {
-					if (mt == tag) {
-						ModelButton *mb = Widget::create<ModelButton>(Vec(0, y));
-						mb->mbw = this;
-						mb->model = model;
-						mb->box.size.x = width;
-						mb->box.size.y = 15;
-						mb->label = model->name;
-						scrollContainer->addChild(mb);
-						y += 15;
-					}
-				} 
+		for (std::shared_ptr<ModelElement> me : modelList) {
+			for (ModelTag mt : me->model->tags) {
+				if (mt == tag) {
+					AddElement(me, y);
+					y += 15;
+				}
 			}
-		}
+		}	
+		SetListWidth();
 	}
 	void Minimize(unsigned int minimize) {
 		if (minimize) {
-			panel->setBackground(SVG::load(assetPlugin(plugin, "res/ModBrowserMin.svg")));
+			panel->setBackground(minimizedSVG);
 			box.size.x = panel->box.size.x;
 			panel->dirty = true;
 			backPanel->visible = false;
 			maximizeButton->visible = true;
 		}
 		else {
-			panel->setBackground(SVG::load(assetPlugin(plugin, "res/ModBrowser.svg")));
+			panel->setBackground(maximizedSVG);
 			box.size.x = panel->box.size.x;
 			panel->dirty = true;
 			backPanel->visible = true;
@@ -369,6 +451,8 @@ struct ModBrowserWidget : ModuleWidget {
 		}
 	}
 };
+
+// Icon onAction
 
 void PluginIcon::onAction(EventAction &e) {
 	mbw->ResetIcons();
@@ -399,15 +483,17 @@ void MaximizeButton::onAction(EventAction &e) {
 	mbw->Minimize(false);
 }
 
-void PluginButton::onAction(EventAction &e) {
+// Element onAction
+
+void PluginElement::onAction(EventAction &e) {
 	mbw->AddModels(plugin);
 }
 
-void TagButton::onAction(EventAction &e) {
+void TagElement::onAction(EventAction &e) {
 	mbw->AddModels(tag);
 }
 
-void ModelButton::onAction(EventAction &e) {
+void ModelElement::onAction(EventAction &e) {
 	ModuleWidget *moduleWidget = model->createModuleWidget();
 	if (!moduleWidget)
 		return;
@@ -416,11 +502,11 @@ void ModelButton::onAction(EventAction &e) {
 	gRackWidget->requestModuleBoxNearest(moduleWidget, moduleWidget->box);
 }
 
-void PluginBackButton::onAction(EventAction &e) {
+void PluginBackElement::onAction(EventAction &e) {
 	mbw->AddPlugins();
 }
 
-void TagBackButton::onAction(EventAction &e) {
+void TagBackElement::onAction(EventAction &e) {
 	mbw->AddTags();
 }
 
