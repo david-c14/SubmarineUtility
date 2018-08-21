@@ -1,5 +1,6 @@
 #include "SubmarineUtility.hpp"
 #include <map>
+#include <algorithm>
 #include "window.hpp"
 #include "osdialog.h"
 
@@ -479,6 +480,8 @@ struct ModBrowserWidget : ModuleWidget {
 	}
 	void Load(json_t *rootJ) {
 		std::string message;
+		Rect newBox;
+		newBox.pos.x = -1;
 		//load modules
 		std::map<int, ModuleWidget *> moduleWidgets;
 		json_t *modulesJ = json_object_get(rootJ, "modules");
@@ -494,9 +497,30 @@ struct ModBrowserWidget : ModuleWidget {
 				Vec pos = Vec(x,y);
 				moduleWidget->box.pos = pos.mult(RACK_GRID_SIZE);
 				moduleWidgets[moduleId] = moduleWidget;
+				if (newBox.pos.x == -1) {
+					newBox = moduleWidget->box;
+				}
+				else {
+					Rect mbox = moduleWidget->box;
+					if (mbox.pos.x < newBox.pos.x) {
+						newBox.size.x += newBox.pos.x - mbox.pos.x;
+						newBox.pos.x = mbox.pos.x;
+					}
+					if (mbox.pos.y < newBox.pos.y) {
+						newBox.size.y += newBox.pos.y - mbox.pos.y;
+						newBox.pos.y = mbox.pos.y;
+					}
+					if ((mbox.pos.x + mbox.size.x) > (newBox.pos.x + newBox.size.x)) {
+						newBox.size.x = mbox.pos.x + mbox.size.x - newBox.pos.x;
+					}
+					if ((mbox.pos.y + mbox.size.y) > (newBox.pos.y + newBox.size.y)) {
+						newBox.size.y = mbox.pos.y + mbox.size.y - newBox.pos.y;
+					}
+				}
 			}
 		}
 		//find space for modules and arrange
+		debug("%f %f %f %f", newBox.pos.x, newBox.pos.y, newBox.size.x, newBox.size.y);
 		//wires
 		json_t *wiresJ = json_object_get(rootJ, "wires");
 		if (!wiresJ) return;
@@ -533,6 +557,26 @@ struct ModBrowserWidget : ModuleWidget {
 			wireWidget->inputPort = inputPort;
 			wireWidget->updateWire();
 			gRackWidget->wireContainer->addChild(wireWidget);
+		}
+	}
+	Rect FindSpace(std::map<int, ModuleWidget *> map, Rect box) {
+		int x0 = roundf(box.pos.x / RACK_GRID_WIDTH);
+		int y0 = roundf(box.pos.y / RACK_GRID_HEIGHT);
+		std::vector<Vec> positions;
+		for (int y = max(0, y0 - 8); y < y0 + 8; y++) {
+			for (int x = max(0, x0 - 400); x < x0 + 400; x++) {
+				positions.push_back(Vec(x * RACK_GRID_WIDTH, y * RACK_GRID_HEIGHT));
+			}
+		}
+		std::sort(positions.begin(), positions.end(), [box](Vec a, Vec b) {
+			return a.minus(box.pos).norm() < b.minus(box.pos).norm();
+		});
+		for (Vec position : positions) {
+			Rect newBox = box;
+			newBox.pos = position;
+			for (Widget *child2 : gRackWidget->moduleContainer->children) {
+			
+			}
 		}
 	}
 	void Minimize(unsigned int minimize) {
