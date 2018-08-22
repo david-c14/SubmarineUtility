@@ -531,13 +531,14 @@ struct ModBrowserWidget : ModuleWidget {
 		}
  
 		//find space for modules and arrange
-		debug("%f %f %f %f", newBox.pos.x, newBox.pos.y, newBox.size.x, newBox.size.y);
 		Rect space = FindSpace(existingWidgets, newBox);
 		if (space.pos.x == -1) {
 			// oooh noes!!! couldn't find space for these widgets
 			warn("Module browser could not find space to load patch");
 			for (const auto& kvp : moduleWidgets) {
 				gRackWidget->deleteModule(kvp.second);
+				kvp.second->finalizeEvents();
+				delete kvp.second;
 			}
 			return;
 		}
