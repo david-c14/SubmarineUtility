@@ -451,7 +451,10 @@ struct ModBrowserWidget : ModuleWidget {
 			dir = stringDirectory(gRackWidget->lastPath);
 		}
 		osdialog_filters *filters = osdialog_filters_parse(PATCH_FILTERS.c_str());
+		debug("%s", dir.c_str());
 		char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
+		debug("%s", path);
+			
 		if (path) {
 			Load(path);
 			gRackWidget->lastPath = path;
@@ -486,6 +489,10 @@ struct ModBrowserWidget : ModuleWidget {
 		std::map<int, ModuleWidget *> moduleWidgets;
 		json_t *modulesJ = json_object_get(rootJ, "modules");
 		if (!modulesJ) return;
+		std::vector<Widget *> existingWidgets;
+		for (Widget *child : gRackWidget->moduleContainer->children) {
+			existingWidgets.push_back(child);
+		} 
 		size_t moduleId;
 		json_t *moduleJ;
 		json_array_foreach(modulesJ, moduleId, moduleJ) {
@@ -498,7 +505,10 @@ struct ModBrowserWidget : ModuleWidget {
 				moduleWidget->box.pos = pos.mult(RACK_GRID_SIZE);
 				moduleWidgets[moduleId] = moduleWidget;
 				if (newBox.pos.x == -1) {
-					newBox = moduleWidget->box;
+					newBox.pos.x = moduleWidget->box.pos.x;
+					newBox.pos.y = moduleWidget->box.pos.y;
+					newBox.size.x = moduleWidget->box.size.x;
+					newBox.size.y = moduleWidget->box.size.y;
 				}
 				else {
 					Rect mbox = moduleWidget->box;
@@ -519,8 +529,25 @@ struct ModBrowserWidget : ModuleWidget {
 				}
 			}
 		}
+ 
 		//find space for modules and arrange
 		debug("%f %f %f %f", newBox.pos.x, newBox.pos.y, newBox.size.x, newBox.size.y);
+		Rect space = FindSpace(existingWidgets, newBox);
+		if (space.pos.x == -1) {
+			// oooh noes!!! couldn't find space for these widgets
+			warn("Module browser could not find space to load patch");
+			for (const auto& kvp : moduleWidgets) {
+				gRackWidget->deleteModule(kvp.second);
+			}
+			return;
+		}
+		// Move modules into space
+		float dx = space.pos.x - newBox.pos.x;
+		float dy = space.pos.y - newBox.pos.y;
+		for (const auto& kvp : moduleWidgets) {
+			kvp.second->box.pos.x += dx;
+			kvp.second->box.pos.y += dy;
+		}
 		//wires
 		json_t *wiresJ = json_object_get(rootJ, "wires");
 		if (!wiresJ) return;
@@ -558,8 +585,9 @@ struct ModBrowserWidget : ModuleWidget {
 			wireWidget->updateWire();
 			gRackWidget->wireContainer->addChild(wireWidget);
 		}
+
 	}
-	Rect FindSpace(std::map<int, ModuleWidget *> map, Rect box) {
+	Rect FindSpace(std::vector<Widget *> existingWidgets, Rect box) {
 		int x0 = roundf(box.pos.x / RACK_GRID_WIDTH);
 		int y0 = roundf(box.pos.y / RACK_GRID_HEIGHT);
 		std::vector<Vec> positions;
@@ -574,10 +602,20 @@ struct ModBrowserWidget : ModuleWidget {
 		for (Vec position : positions) {
 			Rect newBox = box;
 			newBox.pos = position;
-			for (Widget *child2 : gRackWidget->moduleContainer->children) {
-			
+			int collide = false;
+			for (Widget *child : existingWidgets) {
+				if (newBox.intersects(child->box)) {
+					collide = true;
+					break;
+				}		
+			}
+			if (!collide) {
+				return newBox;
 			}
 		}
+		Rect failed;
+		failed.pos.x = -1;
+		return failed;
 	}
 	void Minimize(unsigned int minimize) {
 		if (minimize) {
