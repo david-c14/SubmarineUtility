@@ -59,12 +59,33 @@ struct TextButton : SubControls::ButtonBase {
 		}
 		nvgFontFaceId(vg, gGuiFont->handle);
 		nvgFontSize(vg, 13);
-		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
-		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
-		nvgText(vg, 1, box.size.y / 2, label1.c_str(), NULL);
+	// Draw secondary text
 		nvgFillColor(vg, nvgRGB(0x80, 0x80, 0x80));
 		nvgTextAlign(vg, NVG_ALIGN_MIDDLE | NVG_ALIGN_RIGHT);
 		nvgText(vg, box.size.x - 1, box.size.y / 2, label2.c_str(), NULL);
+	// If text overlaps, feather out overlap
+		if (label1Width + label2Width > box.size.x) {
+			NVGpaint grad;
+			if (gDraggedWidget == this) {
+				nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+				grad = nvgLinearGradient(vg, label1Width, 0, label1Width + 10, 0, nvgRGBA(0x20, 0x20, 0x20, 0xff), nvgRGBA(0x20, 0x20, 0x20, 0));
+			}
+			else {
+				nvgFillColor(vg, nvgRGB(0, 0, 0));
+				grad = nvgLinearGradient(vg, label1Width, 0, label1Width + 10, 0, nvgRGBA(0, 0, 0, 0xff), nvgRGBA(0, 0, 0, 0));
+			}
+			nvgBeginPath(vg);
+			nvgRect(vg, box.size.x - label2Width, 0, label1Width - box.size.x + label2Width, box.size.y);
+			nvgFill(vg);
+			nvgBeginPath(vg);
+			nvgRect(vg, label1Width, 0, 10, box.size.y);
+			nvgFillPaint(vg, grad);
+			nvgFill(vg); 
+		}
+	// Draw primary text
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
+		nvgText(vg, 1, box.size.y / 2, label1.c_str(), NULL);
 		Component::draw(vg);
 	}
 	void GetLabels() {
