@@ -283,7 +283,11 @@ struct ModBrowserWidget : ModuleWidget {
 	std::list<std::shared_ptr<ModelElement>> modelList;
 	std::shared_ptr<SVG> maximizedSVG;
 	std::shared_ptr<SVG> minimizedSVG;
+	std::string allfilters;
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
+		allfilters.assign(PATCH_FILTERS);
+		allfilters.append(";");
+		allfilters.append(PRESET_FILTERS);
 		maximizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowser.svg"));
 		minimizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowserMin.svg"));	
 		setPanel(maximizedSVG);
@@ -471,7 +475,7 @@ struct ModBrowserWidget : ModuleWidget {
 		else {
 			dir = stringDirectory(gRackWidget->lastPath);
 		}
-		osdialog_filters *filters = osdialog_filters_parse(PATCH_FILTERS.c_str());
+		osdialog_filters *filters = osdialog_filters_parse(allfilters.c_str());
 		debug("%s", dir.c_str());
 		char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
 		debug("%s", path);
@@ -502,6 +506,13 @@ struct ModBrowserWidget : ModuleWidget {
 		}		
 		fclose(file);
 	}
+	void LoadPreset(json_t *rootJ) {
+		ModuleWidget *moduleWidget = gRackWidget->moduleFromJson(rootJ);
+		if (moduleWidget) {
+			moduleWidget->box.pos = gRackWidget->lastMousePos.minus(moduleWidget->box.size.div(2));
+			gRackWidget->requestModuleBoxNearest(moduleWidget, moduleWidget->box);
+		}
+	}
 	void Load(json_t *rootJ) {
 		std::string message;
 		Rect newBox;
@@ -509,7 +520,10 @@ struct ModBrowserWidget : ModuleWidget {
 		//load modules
 		std::map<int, ModuleWidget *> moduleWidgets;
 		json_t *modulesJ = json_object_get(rootJ, "modules");
-		if (!modulesJ) return;
+		if (!modulesJ) {
+			LoadPreset(rootJ);
+			return;
+		}
 		std::vector<Widget *> existingWidgets;
 		for (Widget *child : gRackWidget->moduleContainer->children) {
 			existingWidgets.push_back(child);
