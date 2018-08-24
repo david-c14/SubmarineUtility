@@ -213,28 +213,6 @@ struct MaximizeButton : SubControls::ButtonBase {
 
 // Elements
 
-struct PluginElement : ListElement {
-	Plugin *plugin;
-	std::string GetLabelOne() override {
-		return plugin->slug;
-	}
-	std::string GetLabelTwo() override {
-		return plugin->slug;
-	} 
-	void onAction(EventAction &e) override;
-};
-
-struct TagElement : ListElement {
-	unsigned int tag;
-	std::string GetLabelOne() override {
-		return gTagNames[tag];
-	}
-	std::string GetLabelTwo() override {
-		return gTagNames[tag];
-	}
-	void onAction(EventAction &e) override;
-};
-
 struct ModelElement : ListElement {
 	Model *model;
 	std::string GetLabelOne() override {
@@ -243,6 +221,24 @@ struct ModelElement : ListElement {
 	std::string GetLabelTwo() override {
 		return model->plugin->slug;
 	}
+	void onAction(EventAction &e) override;
+};
+
+struct PluginElement : ListElement {
+	std::string label;
+	std::string GetLabelOne() override {
+		return label;
+	}
+	std::string GetLabelTwo() override;
+	void onAction(EventAction &e) override;
+};
+
+struct TagElement : ListElement {
+	unsigned int tag;
+	std::string GetLabelOne() override {
+		return gTagNames[tag];
+	}
+	std::string GetLabelTwo() override;
 	void onAction(EventAction &e) override;
 };
 
@@ -330,26 +326,38 @@ struct ModBrowserWidget : ModuleWidget {
 		backPanel->addChild(scrollWidget);
 
 		scrollContainer = scrollWidget->container;
-		for (Plugin *plugin : gPlugins) {
-			std::shared_ptr<PluginElement> pe = std::make_shared<PluginElement>();
-			pe->mbw = this;
-			pe->plugin = plugin;
-			pluginList.push_back(pe);
-		}
 		for (unsigned int i = 1; i < NUM_TAGS; i++) {
 			std::shared_ptr<TagElement> te = std::make_shared<TagElement>();
 			te->mbw = this;
 			te->tag = i;
 			tagList.push_back(te);
 		}
+		// Sort Tags (probably already sorted)
+		tagList.sort([](std::shared_ptr<TagElement> te1, std::shared_ptr<TagElement> te2) { return gTagNames[te1->tag].compare(gTagNames[te2->tag]) < 0;  } );
+
 		for (Plugin *plugin : gPlugins) {
 			for (Model *model : plugin->models) {
 				std::shared_ptr<ModelElement> me = std::make_shared<ModelElement>();
 				me->mbw = this;
 				me->model = model;
 				modelList.push_back(me);
+				int found = false;
+				for (std::shared_ptr<PluginElement> pe : pluginList) {
+					if (!pe->label.compare(me->model->author)) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					std::shared_ptr<PluginElement> pe = std::make_shared<PluginElement>();
+					pe->mbw = this;
+					pe->label.assign(me->model->author);
+					pluginList.push_back(pe);
+				}
 			}
 		}
+		// Sort Plugins/Authors
+		pluginList.sort([](std::shared_ptr<PluginElement> pe1, std::shared_ptr<PluginElement> pe2) { return pe1->label.compare(pe2->label) < 0; } );
 		
 		AddPlugins();
 	}
@@ -434,15 +442,15 @@ struct ModBrowserWidget : ModuleWidget {
 		fclose(file);
 		SetListWidth();
 	}
-	void AddModels(Plugin *plugin) {
+	void AddModels(std::string author) {
 		scrollContainer->clearChildren();
 		std::shared_ptr<PluginBackElement> pbe = std::make_shared<PluginBackElement>();	
 		pbe->mbw = this;
-		pbe->label2 = plugin->slug;
+		pbe->label2 = author;
 		AddElement(pbe, 0);
 		unsigned int y = 15;
 		for (std::shared_ptr<ModelElement> me : modelList) {
-			if (me->model->plugin == plugin) {
+			if (!me->model->author.compare(author)) {
 				AddElement(me, y);
 				y += 15;
 			}
@@ -706,11 +714,32 @@ void MaximizeButton::onAction(EventAction &e) {
 // Element onAction
 
 void PluginElement::onAction(EventAction &e) {
-	mbw->AddModels(plugin);
+	mbw->AddModels(label);
 }
+
+std::string PluginElement::GetLabelTwo() {
+	unsigned int count = 0;
+	for (std::shared_ptr<ModelElement> me : mbw->modelList) {
+		if (!label.compare(me->model->author))
+			count++;
+	}
+	return std::to_string(count).append(" Modules");
+} 
 
 void TagElement::onAction(EventAction &e) {
 	mbw->AddModels(tag);
+}
+
+std::string TagElement::GetLabelTwo() {
+	unsigned int count = 0;
+	for (std::shared_ptr<ModelElement> me : mbw->modelList) {
+		for (ModelTag mt : me->model->tags) {
+			if (mt == tag) {
+				count++;
+			}
+		}
+	}
+	return std::to_string(count).append(" Modules");
 }
 
 void ModelElement::onAction(EventAction &e) {
