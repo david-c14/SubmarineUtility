@@ -99,95 +99,51 @@ struct TextButton : SubControls::ButtonBase {
 
 // Icons
 
-struct PluginIcon : SubControls::ButtonBase {
+struct PluginIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	PluginIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 7, 15, 16, 10, 2);
-		nvgRect(vg, 7, 15, 16, 3);
-		nvgRoundedRect(vg, 9, 6, 3, 12, 2);
-		nvgRoundedRect(vg, 18, 6, 3, 12, 2);
-		nvgRect(vg, 14, 24, 2, 4);
-		nvgFillColor(vg, nvgRGB(0x80, 0x80, 0x80));
-		nvgFill(vg);
-
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct TagIcon : SubControls::ButtonBase {
+struct TagIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	TagIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct FavIcon : SubControls::ButtonBase {
+struct FavIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	FavIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct LoadIcon : SubControls::ButtonBase {
+struct LoadIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	LoadIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct MinimizeIcon : SubControls::ButtonBase {
+struct MinimizeIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	MinimizeIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
-	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
 	}
 	void onAction(EventAction &e) override;
 };
@@ -301,22 +257,27 @@ struct ModBrowserWidget : ModuleWidget {
 		pluginIcon = Widget::create<PluginIcon>(Vec(0, 0));
 		pluginIcon->selected = 1;
 		pluginIcon->mbw = this;
+		pluginIcon->setSVG(SVG::load(assetPlugin(plugin, "res/plugin.svg")));
 		backPanel->addChild(pluginIcon);
 
 		tagIcon = Widget::create<TagIcon>(Vec(30, 0));
 		tagIcon->mbw = this;
+		tagIcon->setSVG(SVG::load(assetPlugin(plugin, "res/tag.svg")));
 		backPanel->addChild(tagIcon);
 
 		favIcon = Widget::create<FavIcon>(Vec(60, 0));
 		favIcon->mbw = this;
+		favIcon->setSVG(SVG::load(assetPlugin(plugin, "res/favorite.svg")));
 		backPanel->addChild(favIcon);
 	
 		loadIcon = Widget::create<LoadIcon>(Vec(90, 0));
 		loadIcon->mbw = this;
+		loadIcon->setSVG(SVG::load(assetPlugin(plugin, "res/load.svg")));
 		backPanel->addChild(loadIcon);
 	
 		minimizeIcon = Widget::create<MinimizeIcon>(Vec(120, 0));
 		minimizeIcon->mbw = this;
+		minimizeIcon->setSVG(SVG::load(assetPlugin(plugin, "res/min.svg")));
 		backPanel->addChild(minimizeIcon);	
 
 		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 30));
