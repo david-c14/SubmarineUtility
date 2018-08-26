@@ -31,6 +31,8 @@ struct ButtonBase : Component {
 	}
 };
 
+struct SubLogo : SVGWidget{};
+
 } // SubControls
 
 struct TextButton : SubControls::ButtonBase {
@@ -54,7 +56,7 @@ struct TextButton : SubControls::ButtonBase {
 		if (gDraggedWidget == this) {
 			nvgBeginPath(vg);
 			nvgRect(vg, 0, 0, box.size.x - 2, box.size.y);
-			nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+			nvgFillColor(vg, nvgRGB(0x40, 0x40, 0x40));
 			nvgFill(vg);
 		}
 		nvgFontFaceId(vg, gGuiFont->handle);
@@ -67,7 +69,7 @@ struct TextButton : SubControls::ButtonBase {
 		if (label1Width + label2Width > box.size.x) {
 			NVGpaint grad;
 			if (gDraggedWidget == this) {
-				nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+				nvgFillColor(vg, nvgRGB(0x40, 0x40, 0x40));
 				grad = nvgLinearGradient(vg, label1Width, 0, label1Width + 10, 0, nvgRGBA(0x20, 0x20, 0x20, 0xff), nvgRGBA(0x20, 0x20, 0x20, 0));
 			}
 			else {
@@ -229,60 +231,70 @@ struct ModBrowserWidget : ModuleWidget {
 	LoadIcon *loadIcon;
 	MinimizeIcon *minimizeIcon;
 	MaximizeButton *maximizeButton;
+	SubControls::SubLogo *minimizeLogo;
+	SubControls::SubLogo *maximizeLogo;
 	float width;
+	float moduleWidth = -300.0f;
 	std::list<std::shared_ptr<PluginElement>> pluginList;
 	std::list<std::shared_ptr<TagElement>> tagList;
 	std::list<std::shared_ptr<ModelElement>> modelList;
-	std::shared_ptr<SVG> maximizedSVG;
-	std::shared_ptr<SVG> minimizedSVG;
 	std::string allfilters;
+	std::shared_ptr<Font> font = Font::load(assetGlobal( "res/fonts/DejaVuSans.ttf"));
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
 		allfilters.assign(PATCH_FILTERS);
 		allfilters.append(";");
 		allfilters.append(PRESET_FILTERS);
-		maximizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowser.svg"));
-		minimizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowserMin.svg"));	
-		setPanel(maximizedSVG);
+		box.size.x = -moduleWidth;
+		box.size.y = 380;
+
+		minimizeLogo = Widget::create<SubControls::SubLogo>(Vec(0,0));
+		minimizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub2.svg")));
+		addChild(minimizeLogo);
 		
-		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 30));
-		maximizeButton->visible = false;
+		maximizeLogo = Widget::create<SubControls::SubLogo>(Vec(-moduleWidth-20,365));
+		maximizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub1.svg")));
+		maximizeLogo->visible = false;
+		addChild(maximizeLogo);
+		
+		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 175));
 		maximizeButton->mbw = this;
 		addChild(maximizeButton);
 		
 		backPanel = Widget::create<SubControls::BackPanel>(Vec(10, 20));
 		backPanel->box.size.x = box.size.x - 20;
 		backPanel->box.size.y = box.size.y - 40;
+		backPanel->visible = false;
 		addChild(backPanel);
 
-		pluginIcon = Widget::create<PluginIcon>(Vec(0, 0));
+		pluginIcon = Widget::create<PluginIcon>(Vec(2, 2));
 		pluginIcon->selected = 1;
 		pluginIcon->mbw = this;
 		pluginIcon->setSVG(SVG::load(assetPlugin(plugin, "res/plugin.svg")));
 		backPanel->addChild(pluginIcon);
 
-		tagIcon = Widget::create<TagIcon>(Vec(30, 0));
+		tagIcon = Widget::create<TagIcon>(Vec(34, 2));
 		tagIcon->mbw = this;
 		tagIcon->setSVG(SVG::load(assetPlugin(plugin, "res/tag.svg")));
 		backPanel->addChild(tagIcon);
 
-		favIcon = Widget::create<FavIcon>(Vec(60, 0));
+		favIcon = Widget::create<FavIcon>(Vec(66, 2));
 		favIcon->mbw = this;
 		favIcon->setSVG(SVG::load(assetPlugin(plugin, "res/favorite.svg")));
 		backPanel->addChild(favIcon);
 	
-		loadIcon = Widget::create<LoadIcon>(Vec(90, 0));
+		loadIcon = Widget::create<LoadIcon>(Vec(98, 2));
 		loadIcon->mbw = this;
 		loadIcon->setSVG(SVG::load(assetPlugin(plugin, "res/load.svg")));
 		backPanel->addChild(loadIcon);
 	
-		minimizeIcon = Widget::create<MinimizeIcon>(Vec(120, 0));
+		minimizeIcon = Widget::create<MinimizeIcon>(Vec(130, 2));
 		minimizeIcon->mbw = this;
 		minimizeIcon->setSVG(SVG::load(assetPlugin(plugin, "res/min.svg")));
 		backPanel->addChild(minimizeIcon);	
 
-		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 30));
+		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 35));
 		scrollWidget->box.size.x = box.size.x - 20;
-		scrollWidget->box.size.y = box.size.y - 70;
+		scrollWidget->box.size.y = box.size.y - 75;
 		width = scrollWidget->box.size.x - 20;
 		backPanel->addChild(scrollWidget);
 
@@ -321,6 +333,7 @@ struct ModBrowserWidget : ModuleWidget {
 		pluginList.sort([](std::shared_ptr<PluginElement> pe1, std::shared_ptr<PluginElement> pe2) { return pe1->label.compare(pe2->label) < 0; } );
 		
 		AddPlugins();
+		box.size.x = 15;
 	}
 	void ResetIcons() {
 		pluginIcon->selected = 0;
@@ -624,19 +637,55 @@ struct ModBrowserWidget : ModuleWidget {
 	}
 	void Minimize(unsigned int minimize) {
 		if (minimize) {
-			panel->setBackground(minimizedSVG);
-			box.size.x = panel->box.size.x;
-			panel->dirty = true;
+			if (moduleWidth > 0)
+				moduleWidth = -moduleWidth;
+			box.size.x = 15;
 			backPanel->visible = false;
 			maximizeButton->visible = true;
+			maximizeLogo->visible = false;
+			minimizeLogo->visible = true;
 		}
 		else {
-			panel->setBackground(maximizedSVG);
-			box.size.x = panel->box.size.x;
-			panel->dirty = true;
+			if (moduleWidth < 0)
+				moduleWidth = -moduleWidth;
+			box.size.x = 300;
 			backPanel->visible = true;
 			maximizeButton->visible = false;
+			maximizeLogo->visible = true;
+			minimizeLogo->visible = false;
 		}
+	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRect(vg,0,0,box.size.x, box.size.y);
+		nvgFillColor(vg,nvgRGB(0x29, 0x4f, 0x77));
+		nvgFill(vg);
+		if (moduleWidth > 0) {
+			nvgFontSize(vg, 12);
+			nvgFontFaceId(vg, font->handle);
+			nvgFillColor(vg, nvgRGBA(0x28, 0xb0, 0xf3, 0xff));
+			nvgTextAlign(vg, NVG_ALIGN_LEFT);
+			nvgText(vg, 1, 378, "submarine", NULL);
+		}
+		Widget::draw(vg);
+	}
+	json_t *toJson() override {
+		json_t *rootJ = ModuleWidget::toJson();
+
+		// // width
+		json_object_set_new(rootJ, "width", json_real(moduleWidth));
+
+		return rootJ;
+	}
+
+	void fromJson(json_t *rootJ) override {
+		ModuleWidget::fromJson(rootJ);
+
+		// width
+		json_t *widthJ = json_object_get(rootJ, "width");
+		if (widthJ)
+			moduleWidth = json_number_value(widthJ);
+		Minimize(moduleWidth < 0);	
 	}
 };
 
