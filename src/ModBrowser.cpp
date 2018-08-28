@@ -237,6 +237,7 @@ struct ModBrowserWidget : ModuleWidget {
 	float width;
 	float zoom = 1.0f;
 	float moduleWidth = -300.0f;
+	int stabilized = false;
 	std::list<std::shared_ptr<PluginElement>> pluginList;
 	std::list<std::shared_ptr<TagElement>> tagList;
 	std::list<std::shared_ptr<ModelElement>> modelList;
@@ -261,12 +262,12 @@ struct ModBrowserWidget : ModuleWidget {
 		
 		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 175));
 		maximizeButton->mbw = this;
+		maximizeButton->visible = false;
 		addChild(maximizeButton);
 		
 		backPanel = Widget::create<SubControls::BackPanel>(Vec(10, 15));
 		backPanel->box.size.x = box.size.x - 20;
 		backPanel->box.size.y = box.size.y - 30;
-		backPanel->visible = false;
 		addChild(backPanel);
 
 		pluginIcon = Widget::create<PluginIcon>(Vec(2, 2));
@@ -336,7 +337,6 @@ struct ModBrowserWidget : ModuleWidget {
 		pluginList.sort([](std::shared_ptr<PluginElement> pe1, std::shared_ptr<PluginElement> pe2) { return pe1->label.compare(pe2->label) < 0; } );
 		
 		AddPlugins();
-		box.size.x = 15;
 	}
 	void ResetIcons() {
 		pluginIcon->selected = 0;
@@ -365,7 +365,6 @@ struct ModBrowserWidget : ModuleWidget {
 	}
 	void AddPlugins() {
 		scrollContainer->clearChildren();
-		debug ("Count %d", scrollContainer->children.size());
 		unsigned int y = 0;
 		for (std::shared_ptr<PluginElement> pe : pluginList) {
 			AddElement(pe, y);			
@@ -466,9 +465,7 @@ struct ModBrowserWidget : ModuleWidget {
 			dir = stringDirectory(gRackWidget->lastPath);
 		}
 		osdialog_filters *filters = osdialog_filters_parse(allfilters.c_str());
-		debug("%s", dir.c_str());
 		char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
-		debug("%s", path);
 			
 		if (path) {
 			Load(path);
@@ -643,7 +640,23 @@ struct ModBrowserWidget : ModuleWidget {
 		failed.pos.x = -1;
 		return failed;
 	}
+	void ShiftOthers(float delta) {
+		if (!stabilized)
+			return;
+		if (delta == 0.0f)
+			return;
+		for (Widget *w : gRackWidget->moduleContainer->children) {
+			if (this->box.pos.y != w->box.pos.y)
+				continue;
+			if (this->box.pos.x > w->box.pos.x)
+				continue;
+			if (this == w)
+				continue;
+			w->box.pos.x += delta;
+		}
+	}
 	void Minimize(unsigned int minimize) {
+		float oldSize = box.size.x;
 		if (minimize) {
 			if (moduleWidth > 0)
 				moduleWidth = -moduleWidth;
@@ -652,11 +665,13 @@ struct ModBrowserWidget : ModuleWidget {
 			maximizeButton->visible = true;
 			maximizeLogo->visible = false;
 			minimizeLogo->visible = true;
+			ShiftOthers(box.size.x - oldSize);
 		}
 		else {
 			if (moduleWidth < 0)
 				moduleWidth = -moduleWidth;
-			box.size.x = 300;
+			ShiftOthers(moduleWidth - oldSize);
+			box.size.x = moduleWidth;
 			backPanel->visible = true;
 			maximizeButton->visible = false;
 			maximizeLogo->visible = true;
@@ -670,6 +685,7 @@ struct ModBrowserWidget : ModuleWidget {
 			zoom = thisZoom;
 			SetListWidth();
 		}
+		stabilized = true;
 		ModuleWidget::step();
 	} 
 
@@ -717,7 +733,7 @@ struct ModBrowserWidget : ModuleWidget {
 			nvgText(vg, -277.5, 7.5, "submarine", NULL);
 			nvgRestore(vg);
 		}
-		//Widget::draw(vg);
+		Widget::draw(vg);
 	}
 
 	json_t *toJson() override {
