@@ -353,7 +353,6 @@ struct ModBrowserWidget : ModuleWidget {
 			w->box.pos.y = position;
 			w->box.size.x = width;
 			position += w->box.size.y = size;
-			w->box.pos.y = position;
 		}
 	}
 	void AddElement(std::shared_ptr<ListElement> le, float y) {
@@ -366,6 +365,7 @@ struct ModBrowserWidget : ModuleWidget {
 	}
 	void AddPlugins() {
 		scrollContainer->clearChildren();
+		debug ("Count %d", scrollContainer->children.size());
 		unsigned int y = 0;
 		for (std::shared_ptr<PluginElement> pe : pluginList) {
 			AddElement(pe, y);			
