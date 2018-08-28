@@ -263,9 +263,9 @@ struct ModBrowserWidget : ModuleWidget {
 		maximizeButton->mbw = this;
 		addChild(maximizeButton);
 		
-		backPanel = Widget::create<SubControls::BackPanel>(Vec(10, 20));
+		backPanel = Widget::create<SubControls::BackPanel>(Vec(10, 15));
 		backPanel->box.size.x = box.size.x - 20;
-		backPanel->box.size.y = box.size.y - 40;
+		backPanel->box.size.y = box.size.y - 30;
 		backPanel->visible = false;
 		addChild(backPanel);
 
@@ -297,7 +297,7 @@ struct ModBrowserWidget : ModuleWidget {
 
 		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 35));
 		scrollWidget->box.size.x = box.size.x - 20;
-		scrollWidget->box.size.y = box.size.y - 75;
+		scrollWidget->box.size.y = box.size.y - 65;
 		width = scrollWidget->box.size.x - 20;
 		backPanel->addChild(scrollWidget);
 
@@ -678,14 +678,46 @@ struct ModBrowserWidget : ModuleWidget {
 		nvgRect(vg,0,0,box.size.x, box.size.y);
 		nvgFillColor(vg,nvgRGB(0x29, 0x4f, 0x77));
 		nvgFill(vg);
+		nvgBeginPath(vg);
+		nvgMoveTo(vg, 0, 0);
+		nvgLineTo(vg, box.size.x, 0);
+		nvgLineTo(vg, box.size.x - 1, 1);
+		nvgLineTo(vg, 1, 1);
+		nvgLineTo(vg, 1, box.size.y - 1);
+		nvgLineTo(vg, 0, box.size.y);
+		nvgClosePath(vg);
+		nvgFillColor(vg, nvgRGB(0x31, 0xbe, 0xa5));
+		nvgFill(vg);
+		nvgMoveTo(vg, box.size.x, 0);
+		nvgLineTo(vg, box.size.x, box.size.y);
+		nvgLineTo(vg, 0, box.size.y);
+		nvgLineTo(vg, 1, box.size.y - 1);
+		nvgLineTo(vg, box.size.x - 1, box.size.y - 1);
+		nvgLineTo(vg, box.size.x - 1, 1);
+		nvgClosePath(vg);
+		nvgFillColor(vg, nvgRGB(0x18, 0x2d, 0x44));
+		nvgFill(vg);
 		if (moduleWidth > 0) {
-			nvgFontSize(vg, 12);
+			nvgFontSize(vg, 14);
 			nvgFontFaceId(vg, font->handle);
-			nvgFillColor(vg, nvgRGBA(0x28, 0xb0, 0xf3, 0xff));
+			nvgFillColor(vg, nvgRGBA(0x71, 0x9f, 0xcf, 0xff));
 			nvgTextAlign(vg, NVG_ALIGN_LEFT);
-			nvgText(vg, 1, 378, "submarine", NULL);
+			nvgText(vg, 3, 378, "submarine", NULL);
+			nvgTextAlign(vg, NVG_ALIGN_CENTER);
+			nvgText(vg, box.size.x / 2, 12, "Module Browser", NULL);
 		}
-		Widget::draw(vg);
+		else {
+			nvgSave(vg);
+			nvgRotate(vg, -M_PI / 2);
+			nvgFontSize(vg, 14);
+			nvgFontFaceId(vg, font->handle);
+			nvgFillColor(vg, nvgRGBA(0x71, 0x9f, 0xcf, 0xff));
+			nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+			nvgText(vg, -97.5, 7.5, "Module Browser", NULL);
+			nvgText(vg, -277.5, 7.5, "submarine", NULL);
+			nvgRestore(vg);
+		}
+		//Widget::draw(vg);
 	}
 
 	json_t *toJson() override {
