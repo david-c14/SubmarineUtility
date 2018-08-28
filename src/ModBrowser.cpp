@@ -274,6 +274,7 @@ struct ModBrowserWidget : ModuleWidget {
 	MinimizeIcon *minimizeIcon;
 	MaximizeButton *maximizeButton;
 	float width;
+	float zoom = 1.0f;
 	std::list<std::shared_ptr<PluginElement>> pluginList;
 	std::list<std::shared_ptr<TagElement>> tagList;
 	std::list<std::shared_ptr<ModelElement>> modelList;
@@ -677,6 +678,13 @@ struct ModBrowserWidget : ModuleWidget {
 			maximizeButton->visible = false;
 		}
 	}
+	void onStep() override {
+		debug("Zoom %f", gRackScene->zoomWidget->zoom);
+		float thisZoom = gRackScene->zoomWidget->zoom;
+		if (thisZoom != zoom) {
+			zoom = thisZoom;
+		}
+	}
 };
 
 // Icon onAction
@@ -759,4 +767,4 @@ void TagBackElement::onAction(EventAction &e) {
 	mbw->AddTags();
 }
 
-Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("SubmarineUtility", "ModBrowser", "ModuleBrowser", UTILITY_TAG);
+Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("Submarine (Utilities)", "ModBrowser", "ModuleBrowser", UTILITY_TAG);
