@@ -35,6 +35,24 @@ struct SubLogo : SVGWidget{};
 
 } // SubControls
 
+struct ModuleResizeHandle : Widget {
+	ModBrowserWidget *mbw;
+	float dragX;
+	Rect originalBox;
+	ModuleResizeHandle() {
+		box.size = Vec(10, 30);
+	}
+	void onMouseDown(EventMouseDown &e) override {
+		if (e.button == 0) {
+			e.consumed = true;
+			e.target = this;
+		}
+	}
+	void draw(NVGcontext *vg) override;
+	void onDragStart(EventDragStart &e) override;
+	void onDragMove(EventDragMove &e) override;
+};
+
 struct TextButton : SubControls::ButtonBase {
 	std::string label1;
 	std::string label2;
@@ -225,7 +243,9 @@ struct TagBackElement : ListElement {
 
 struct ModBrowserWidget : ModuleWidget {
 	SubControls::BackPanel *backPanel;
+	ModuleResizeHandle *handle;
 	Widget *scrollContainer;
+	ScrollWidget *scrollWidget;
 	PluginIcon *pluginIcon;
 	TagIcon *tagIcon;
 	FavIcon *favIcon;
@@ -259,6 +279,10 @@ struct ModBrowserWidget : ModuleWidget {
 		maximizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub1.svg")));
 		maximizeLogo->visible = false;
 		addChild(maximizeLogo);
+
+		//handle = Widget::create<ModuleResizeHandle>(Vec(box.size.x - 10, 175));
+		//handle->mbw = this;
+		//addChild(handle);
 		
 		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 175));
 		maximizeButton->mbw = this;
@@ -296,7 +320,7 @@ struct ModBrowserWidget : ModuleWidget {
 		minimizeIcon->setSVG(SVG::load(assetPlugin(plugin, "res/min.svg")));
 		backPanel->addChild(minimizeIcon);	
 
-		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 35));
+		scrollWidget = Widget::create<ScrollWidget>(Vec(0, 35));
 		scrollWidget->box.size.x = box.size.x - 20;
 		scrollWidget->box.size.y = box.size.y - 65;
 		width = scrollWidget->box.size.x - 20;
@@ -343,6 +367,13 @@ struct ModBrowserWidget : ModuleWidget {
 		tagIcon->selected = 0;
 		favIcon->selected = 0;
 	}
+	void Resize() {
+		debug("Resize %d", box.size.x);
+		scrollWidget->box.size.x = box.size.x - 20;
+		scrollContainer->box.size.x = box.size.x - 20;
+		SetListWidth();
+	} 
+
 	void SetListWidth() {
 		float width = scrollContainer->parent->box.size.x;
 		float size = 15.0f / zoom;
@@ -665,6 +696,7 @@ struct ModBrowserWidget : ModuleWidget {
 			maximizeButton->visible = true;
 			maximizeLogo->visible = false;
 			minimizeLogo->visible = true;
+			//handle->visible = false;
 			ShiftOthers(box.size.x - oldSize);
 		}
 		else {
@@ -676,6 +708,7 @@ struct ModBrowserWidget : ModuleWidget {
 			maximizeButton->visible = false;
 			maximizeLogo->visible = true;
 			minimizeLogo->visible = false;
+			//handle->visible = true;
 		}
 	}
 
