@@ -31,6 +31,8 @@ struct ButtonBase : Component {
 	}
 };
 
+struct SubLogo : SVGWidget{};
+
 } // SubControls
 
 struct TextButton : SubControls::ButtonBase {
@@ -39,35 +41,36 @@ struct TextButton : SubControls::ButtonBase {
 	std::shared_ptr<ListElement> element;
 	float label1Width = 0;
 	float label2Width = 0;	
-	void CalculateSizes(NVGcontext *vg) {
+	void CalculateSizes(NVGcontext *vg, float zoom) {
 		nvgFontFaceId(vg, gGuiFont->handle);
-		nvgFontSize(vg, 13);
+		nvgFontSize(vg, 13 * zoom);
 		float bounds[4];
-		nvgTextBounds(vg, 1, box.size.y / 2, label1.c_str(), NULL, bounds);
+		nvgTextBounds(vg, zoom, box.size.y / 2, label1.c_str(), NULL, bounds);
 		label1Width = bounds[2] - bounds[0];
-		nvgTextBounds(vg, 1, box.size.y / 2, label2.c_str(), NULL, bounds);
+		nvgTextBounds(vg, zoom, box.size.y / 2, label2.c_str(), NULL, bounds);
 		label2Width = bounds[2] - bounds[0];	
 	}
 	void draw (NVGcontext *vg) override {
-		if (label1Width == 0.0f)
-			CalculateSizes(vg);
+		float zoom = 1.0f / clamp(gRackScene->zoomWidget->zoom, 0.25f, 1.0f);
+		//if (label1Width == 0.0f)
+			CalculateSizes(vg, zoom);
 		if (gDraggedWidget == this) {
 			nvgBeginPath(vg);
 			nvgRect(vg, 0, 0, box.size.x - 2, box.size.y);
-			nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+			nvgFillColor(vg, nvgRGB(0x40, 0x40, 0x40));
 			nvgFill(vg);
 		}
 		nvgFontFaceId(vg, gGuiFont->handle);
-		nvgFontSize(vg, 13);
+		nvgFontSize(vg, 13 * zoom);
 	// Draw secondary text
 		nvgFillColor(vg, nvgRGB(0x80, 0x80, 0x80));
 		nvgTextAlign(vg, NVG_ALIGN_MIDDLE | NVG_ALIGN_RIGHT);
-		nvgText(vg, box.size.x - 1, box.size.y / 2, label2.c_str(), NULL);
+		nvgText(vg, box.size.x - zoom, box.size.y / 2, label2.c_str(), NULL);
 	// If text overlaps, feather out overlap
 		if (label1Width + label2Width > box.size.x) {
 			NVGpaint grad;
 			if (gDraggedWidget == this) {
-				nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
+				nvgFillColor(vg, nvgRGB(0x40, 0x40, 0x40));
 				grad = nvgLinearGradient(vg, label1Width, 0, label1Width + 10, 0, nvgRGBA(0x20, 0x20, 0x20, 0xff), nvgRGBA(0x20, 0x20, 0x20, 0));
 			}
 			else {
@@ -85,7 +88,7 @@ struct TextButton : SubControls::ButtonBase {
 	// Draw primary text
 		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
 		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
-		nvgText(vg, 1, box.size.y / 2, label1.c_str(), NULL);
+		nvgText(vg, zoom, box.size.y / 2, label1.c_str(), NULL);
 		Component::draw(vg);
 	}
 	void GetLabels() {
@@ -99,95 +102,51 @@ struct TextButton : SubControls::ButtonBase {
 
 // Icons
 
-struct PluginIcon : SubControls::ButtonBase {
+struct PluginIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	PluginIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 7, 15, 16, 10, 2);
-		nvgRect(vg, 7, 15, 16, 3);
-		nvgRoundedRect(vg, 9, 6, 3, 12, 2);
-		nvgRoundedRect(vg, 18, 6, 3, 12, 2);
-		nvgRect(vg, 14, 24, 2, 4);
-		nvgFillColor(vg, nvgRGB(0x80, 0x80, 0x80));
-		nvgFill(vg);
-
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct TagIcon : SubControls::ButtonBase {
+struct TagIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	TagIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct FavIcon : SubControls::ButtonBase {
+struct FavIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	FavIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct LoadIcon : SubControls::ButtonBase {
+struct LoadIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	LoadIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
 	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
-	}
 	void onAction(EventAction &e) override;
 };
 
-struct MinimizeIcon : SubControls::ButtonBase {
+struct MinimizeIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	MinimizeIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
-	}
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRoundedRect(vg, 2, 2, box.size.x - 4, box.size.y - 4, 3);
-		nvgFillColor(vg, nvgRGB(0x20, 0x20, 0x20));
-		nvgFill(vg);
-		Component::draw(vg);
 	}
 	void onAction(EventAction &e) override;
 };
@@ -273,56 +232,72 @@ struct ModBrowserWidget : ModuleWidget {
 	LoadIcon *loadIcon;
 	MinimizeIcon *minimizeIcon;
 	MaximizeButton *maximizeButton;
+	SubControls::SubLogo *minimizeLogo;
+	SubControls::SubLogo *maximizeLogo;
 	float width;
 	float zoom = 1.0f;
+	float moduleWidth = -300.0f;
 	std::list<std::shared_ptr<PluginElement>> pluginList;
 	std::list<std::shared_ptr<TagElement>> tagList;
 	std::list<std::shared_ptr<ModelElement>> modelList;
-	std::shared_ptr<SVG> maximizedSVG;
-	std::shared_ptr<SVG> minimizedSVG;
 	std::string allfilters;
+	std::shared_ptr<Font> font = Font::load(assetGlobal( "res/fonts/DejaVuSans.ttf"));
 	ModBrowserWidget(Module *module) : ModuleWidget(module) {
+		zoom = clamp(gRackScene->zoomWidget->zoom, 0.25f, 1.0f);
 		allfilters.assign(PATCH_FILTERS);
 		allfilters.append(";");
 		allfilters.append(PRESET_FILTERS);
-		maximizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowser.svg"));
-		minimizedSVG = SVG::load(assetPlugin(plugin, "res/ModBrowserMin.svg"));	
-		setPanel(maximizedSVG);
+		box.size.x = -moduleWidth;
+		box.size.y = 380;
+
+		minimizeLogo = Widget::create<SubControls::SubLogo>(Vec(0,0));
+		minimizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub2.svg")));
+		addChild(minimizeLogo);
 		
-		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 30));
-		maximizeButton->visible = false;
+		maximizeLogo = Widget::create<SubControls::SubLogo>(Vec(-moduleWidth-20,365));
+		maximizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub1.svg")));
+		maximizeLogo->visible = false;
+		addChild(maximizeLogo);
+		
+		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 175));
 		maximizeButton->mbw = this;
 		addChild(maximizeButton);
 		
 		backPanel = Widget::create<SubControls::BackPanel>(Vec(10, 20));
 		backPanel->box.size.x = box.size.x - 20;
 		backPanel->box.size.y = box.size.y - 40;
+		backPanel->visible = false;
 		addChild(backPanel);
 
-		pluginIcon = Widget::create<PluginIcon>(Vec(0, 0));
+		pluginIcon = Widget::create<PluginIcon>(Vec(2, 2));
 		pluginIcon->selected = 1;
 		pluginIcon->mbw = this;
+		pluginIcon->setSVG(SVG::load(assetPlugin(plugin, "res/plugin.svg")));
 		backPanel->addChild(pluginIcon);
 
-		tagIcon = Widget::create<TagIcon>(Vec(30, 0));
+		tagIcon = Widget::create<TagIcon>(Vec(34, 2));
 		tagIcon->mbw = this;
+		tagIcon->setSVG(SVG::load(assetPlugin(plugin, "res/tag.svg")));
 		backPanel->addChild(tagIcon);
 
-		favIcon = Widget::create<FavIcon>(Vec(60, 0));
+		favIcon = Widget::create<FavIcon>(Vec(66, 2));
 		favIcon->mbw = this;
+		favIcon->setSVG(SVG::load(assetPlugin(plugin, "res/favorite.svg")));
 		backPanel->addChild(favIcon);
 	
-		loadIcon = Widget::create<LoadIcon>(Vec(90, 0));
+		loadIcon = Widget::create<LoadIcon>(Vec(98, 2));
 		loadIcon->mbw = this;
+		loadIcon->setSVG(SVG::load(assetPlugin(plugin, "res/load.svg")));
 		backPanel->addChild(loadIcon);
 	
-		minimizeIcon = Widget::create<MinimizeIcon>(Vec(120, 0));
+		minimizeIcon = Widget::create<MinimizeIcon>(Vec(130, 2));
 		minimizeIcon->mbw = this;
+		minimizeIcon->setSVG(SVG::load(assetPlugin(plugin, "res/min.svg")));
 		backPanel->addChild(minimizeIcon);	
 
-		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 30));
+		ScrollWidget *scrollWidget = Widget::create<ScrollWidget>(Vec(0, 35));
 		scrollWidget->box.size.x = box.size.x - 20;
-		scrollWidget->box.size.y = box.size.y - 70;
+		scrollWidget->box.size.y = box.size.y - 75;
 		width = scrollWidget->box.size.x - 20;
 		backPanel->addChild(scrollWidget);
 
@@ -361,6 +336,7 @@ struct ModBrowserWidget : ModuleWidget {
 		pluginList.sort([](std::shared_ptr<PluginElement> pe1, std::shared_ptr<PluginElement> pe2) { return pe1->label.compare(pe2->label) < 0; } );
 		
 		AddPlugins();
+		box.size.x = 15;
 	}
 	void ResetIcons() {
 		pluginIcon->selected = 0;
@@ -369,10 +345,15 @@ struct ModBrowserWidget : ModuleWidget {
 	}
 	void SetListWidth() {
 		float width = scrollContainer->parent->box.size.x;
-		if (scrollContainer->children.size() * 15 > scrollContainer->parent->box.size.y)
+		float size = 15.0f / zoom;
+		if (scrollContainer->children.size() * size > scrollContainer->parent->box.size.y)
 			width -= 13;
+		float position = 0;
 		for (Widget *w : scrollContainer->children) {
+			w->box.pos.y = position;
 			w->box.size.x = width;
+			position += w->box.size.y = size;
+			w->box.pos.y = position;
 		}
 	}
 	void AddElement(std::shared_ptr<ListElement> le, float y) {
@@ -664,26 +645,66 @@ struct ModBrowserWidget : ModuleWidget {
 	}
 	void Minimize(unsigned int minimize) {
 		if (minimize) {
-			panel->setBackground(minimizedSVG);
-			box.size.x = panel->box.size.x;
-			panel->dirty = true;
+			if (moduleWidth > 0)
+				moduleWidth = -moduleWidth;
+			box.size.x = 15;
 			backPanel->visible = false;
 			maximizeButton->visible = true;
+			maximizeLogo->visible = false;
+			minimizeLogo->visible = true;
 		}
 		else {
-			panel->setBackground(maximizedSVG);
-			box.size.x = panel->box.size.x;
-			panel->dirty = true;
+			if (moduleWidth < 0)
+				moduleWidth = -moduleWidth;
+			box.size.x = 300;
 			backPanel->visible = true;
 			maximizeButton->visible = false;
+			maximizeLogo->visible = true;
+			minimizeLogo->visible = false;
 		}
 	}
-	void onStep() override {
-		debug("Zoom %f", gRackScene->zoomWidget->zoom);
-		float thisZoom = gRackScene->zoomWidget->zoom;
+
+	void step() override {
+		float thisZoom = clamp(gRackScene->zoomWidget->zoom, 0.25f, 1.0f);
 		if (thisZoom != zoom) {
 			zoom = thisZoom;
+			SetListWidth();
 		}
+		ModuleWidget::step();
+	} 
+
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgRect(vg,0,0,box.size.x, box.size.y);
+		nvgFillColor(vg,nvgRGB(0x29, 0x4f, 0x77));
+		nvgFill(vg);
+		if (moduleWidth > 0) {
+			nvgFontSize(vg, 12);
+			nvgFontFaceId(vg, font->handle);
+			nvgFillColor(vg, nvgRGBA(0x28, 0xb0, 0xf3, 0xff));
+			nvgTextAlign(vg, NVG_ALIGN_LEFT);
+			nvgText(vg, 1, 378, "submarine", NULL);
+		}
+		Widget::draw(vg);
+	}
+
+	json_t *toJson() override {
+		json_t *rootJ = ModuleWidget::toJson();
+
+		// // width
+		json_object_set_new(rootJ, "width", json_real(moduleWidth));
+
+		return rootJ;
+	}
+
+	void fromJson(json_t *rootJ) override {
+		ModuleWidget::fromJson(rootJ);
+
+		// width
+		json_t *widthJ = json_object_get(rootJ, "width");
+		if (widthJ)
+			moduleWidth = json_number_value(widthJ);
+		Minimize(moduleWidth < 0);	
 	}
 };
 
