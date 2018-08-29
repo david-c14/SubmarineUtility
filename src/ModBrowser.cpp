@@ -35,11 +35,11 @@ struct SubLogo : SVGWidget{};
 
 } // SubControls
 
-struct ModuleResizeHandle : Widget {
+struct ModuleDragHandle : Widget {
 	ModBrowserWidget *mbw;
 	float dragX;
 	Rect originalBox;
-	ModuleResizeHandle() {
+	ModuleDragHandle() {
 		box.size = Vec(10, 30);
 	}
 	void onMouseDown(EventMouseDown &e) override {
@@ -243,7 +243,7 @@ struct TagBackElement : ListElement {
 
 struct ModBrowserWidget : ModuleWidget {
 	SubControls::BackPanel *backPanel;
-	ModuleResizeHandle *handle;
+	ModuleDragHandle *handle;
 	Widget *scrollContainer;
 	ScrollWidget *scrollWidget;
 	PluginIcon *pluginIcon;
@@ -280,9 +280,9 @@ struct ModBrowserWidget : ModuleWidget {
 		maximizeLogo->visible = false;
 		addChild(maximizeLogo);
 
-		//handle = Widget::create<ModuleResizeHandle>(Vec(box.size.x - 10, 175));
-		//handle->mbw = this;
-		//addChild(handle);
+		handle = Widget::create<ModuleDragHandle>(Vec(box.size.x - 10, 175));
+		handle->mbw = this;
+		addChild(handle);
 		
 		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 175));
 		maximizeButton->mbw = this;
@@ -368,9 +368,11 @@ struct ModBrowserWidget : ModuleWidget {
 		favIcon->selected = 0;
 	}
 	void Resize() {
-		debug("Resize %d", box.size.x);
+		debug("Resize %f", box.size.x);
+		backPanel->box.size.x = box.size.x - 20;
 		scrollWidget->box.size.x = box.size.x - 20;
-		scrollContainer->box.size.x = box.size.x - 20;
+		handle->box.pos.x = box.size.x - 10;
+		maximizeLogo->box.pos.x = box.size.x - 20;
 		SetListWidth();
 	} 
 
@@ -696,7 +698,7 @@ struct ModBrowserWidget : ModuleWidget {
 			maximizeButton->visible = true;
 			maximizeLogo->visible = false;
 			minimizeLogo->visible = true;
-			//handle->visible = false;
+			handle->visible = false;
 			ShiftOthers(box.size.x - oldSize);
 		}
 		else {
@@ -708,7 +710,8 @@ struct ModBrowserWidget : ModuleWidget {
 			maximizeButton->visible = false;
 			maximizeLogo->visible = true;
 			minimizeLogo->visible = false;
-			//handle->visible = true;
+			handle->visible = true;
+			Resize();
 		}
 	}
 
@@ -867,6 +870,38 @@ void PluginBackElement::onAction(EventAction &e) {
 
 void TagBackElement::onAction(EventAction &e) {
 	mbw->AddTags();
+}
+
+void ModuleDragHandle::onDragStart(EventDragStart &e) {
+	dragX = gRackWidget->lastMousePos.x;
+	originalBox = mbw->box;
+}
+
+void ModuleDragHandle::onDragMove(EventDragMove &e) {
+
+	float newDragX = gRackWidget->lastMousePos.x;
+	float deltaX = newDragX - dragX;
+
+	Rect newBox = originalBox;
+	const float minWidth = 13 * RACK_GRID_WIDTH;
+	newBox.size.x += deltaX;
+	newBox.size.x = fmaxf(newBox.size.x, minWidth);
+	newBox.size.x = roundf(newBox.size.x / RACK_GRID_WIDTH) * RACK_GRID_WIDTH;
+	gRackWidget->requestModuleBox(mbw, newBox);
+	mbw->moduleWidth = mbw->box.size.x;
+	mbw->Resize();
+}
+
+void ModuleDragHandle::draw(NVGcontext *vg) {
+	for (float x = 2.0; x <= 8.0; x += 2.0) {
+		nvgBeginPath(vg);
+		const float margin = 5.0;
+		nvgMoveTo(vg, x + 0.5, margin + 0.5);
+		nvgLineTo(vg, x + 0.5, box.size.y - margin + 0.5);
+		nvgStrokeWidth(vg, 1.0);
+		nvgStrokeColor(vg, nvgRGBAf(0.5, 0.5, 0.5, 0.5));
+		nvgStroke(vg);
+	}
 }
 
 Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("Submarine (Utilities)", "ModBrowser", "ModuleBrowser", UTILITY_TAG);
