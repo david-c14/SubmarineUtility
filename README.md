@@ -13,5 +13,5 @@ However, these modules are not designed or intended to form any part of your pat
 
 ## Licence
 
-This code is licensed under BSD 3.0 and is mostly copyright © 2018 carbon14 (David O'Rourke) 2018
+This code is licensed under BSD 3-clause and is mostly copyright © 2018 carbon14 (David O'Rourke) 2018
 Some parts of this code are inevitably based directly on code by Andrew Belt within VCVRack itself; Copyright © 2016 Andrew Belt.
