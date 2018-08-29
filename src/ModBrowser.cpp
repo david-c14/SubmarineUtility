@@ -368,7 +368,6 @@ struct ModBrowserWidget : ModuleWidget {
 		favIcon->selected = 0;
 	}
 	void Resize() {
-		debug("Resize %f", box.size.x);
 		backPanel->box.size.x = box.size.x - 20;
 		scrollWidget->box.size.x = box.size.x - 20;
 		handle->box.pos.x = box.size.x - 10;
