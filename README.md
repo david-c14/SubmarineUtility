@@ -11,6 +11,8 @@ Whilst I intend to try to keep these modules up to date with changes, I can make
 
 However, these modules are not designed or intended to form any part of your patch behaviour. They are intended purely as workflow tools. If these modules become incompatible with VCVRack in the future, it should be possible to remove them from the patch without affecting the aural content of the patch.
 
+## [Manual](https://github.com/david-c14/SubmarineUtility/blob/master/manual/index.md)
+
 ## Licence
 
 This code is licensed under BSD 3-clause and is mostly copyright © 2018 carbon14 (David O'Rourke) 2018
