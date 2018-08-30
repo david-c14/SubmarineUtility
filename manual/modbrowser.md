@@ -7,7 +7,7 @@ but at the same time offers some distinct advantages. Both browsers can be used 
 
 The first three icons allow you to browse for modules by Author, Tag or from the list of Favorites. Use the icon to select the list you require.
 
-### Authors.
+### ![](../res/plugin.svg)&nbsp;Authors.
 
 Select an author to be shown a list of the modules available from that author. To go back either select the Authors icon again, or select
 the 'Back' option at the top of the list.
@@ -18,7 +18,7 @@ module browser.
 Alternatively you can drag a module from the module browser to anywhere on your patch. The module will be added into empty space as close as possible
 to where you tried to drop it.
 
-### Tags
+### ![](../res/tag.svg)&nbsp;Tags
 
 Select a tag to be shown a list of the modules which offer that functionality. To go back either select the Tags icon again, or select
 the 'Back' option at the top of the list.
@@ -29,7 +29,7 @@ module browser.
 Alternatively you can drag a module from the module browser to anywhere on your patch. The module will be added into empty space as close as possible
 to where you tried to drop it.
 
-### Favorites
+### ![](../res/favorite.svg)&nbsp;Favorites
 
 The favorites list is loaded from your settings file. As a result it is normally only updated when you quit VCVRack. Favorites changed during a patching session will not show up in the module browser until the next time that you start VCVRack.
 
@@ -39,7 +39,7 @@ module browser.
 Alternatively you can drag a module from the module browser to anywhere on your patch. The module will be added into empty space as close as possible
 to where you tried to drop it.
 
-## Loading Patches
+## ![](../res/load.svg)&nbsp;Loading Patches
 
 The Disk icon will open up a dialog box allowing you to select either a patch or a preset file. 
 
@@ -54,7 +54,9 @@ building a library of signal chains that you pick and choose from to construct m
 
 Loading a preset file will add a new module from into your patch. It will also be configured with the settings of the preset. This can be quicker than manually adding the module and then opening the preset from within the module to configure it.
 
-### Minimize
+## Sizing
+
+### ![](../res/min.svg)&nbsp;Minimize
 
 The Minimize icon will shrink the size of the module browser down to 1-HP. All the modules in the patch to the right of the module browser will be move to the left to take up the space. 
 
