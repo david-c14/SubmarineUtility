@@ -256,7 +256,7 @@ struct ModBrowserWidget : ModuleWidget {
 	SubControls::SubLogo *maximizeLogo;
 	float width;
 	float zoom = 1.0f;
-	float moduleWidth = -300.0f;
+	float moduleWidth = 300.0f;
 	int stabilized = false;
 	std::list<std::shared_ptr<PluginElement>> pluginList;
 	std::list<std::shared_ptr<TagElement>> tagList;
@@ -268,16 +268,16 @@ struct ModBrowserWidget : ModuleWidget {
 		allfilters.assign(PATCH_FILTERS);
 		allfilters.append(";");
 		allfilters.append(PRESET_FILTERS);
-		box.size.x = -moduleWidth;
+		box.size.x = moduleWidth;
 		box.size.y = 380;
 
 		minimizeLogo = Widget::create<SubControls::SubLogo>(Vec(0,0));
 		minimizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub2.svg")));
+		minimizeLogo->visible = false;
 		addChild(minimizeLogo);
 		
-		maximizeLogo = Widget::create<SubControls::SubLogo>(Vec(-moduleWidth-20,365));
+		maximizeLogo = Widget::create<SubControls::SubLogo>(Vec(moduleWidth-20,365));
 		maximizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub1.svg")));
-		maximizeLogo->visible = false;
 		addChild(maximizeLogo);
 
 		handle = Widget::create<ModuleDragHandle>(Vec(box.size.x - 10, 175));
