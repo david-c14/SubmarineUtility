@@ -273,11 +273,11 @@ struct ModBrowserWidget : ModuleWidget {
 
 		minimizeLogo = Widget::create<SubControls::SubLogo>(Vec(0,0));
 		minimizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub2.svg")));
+		minimizeLogo->visible = false;
 		addChild(minimizeLogo);
 		
 		maximizeLogo = Widget::create<SubControls::SubLogo>(Vec(moduleWidth-20,365));
 		maximizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub1.svg")));
-		maximizeLogo->visible = false;
 		addChild(maximizeLogo);
 
 		handle = Widget::create<ModuleDragHandle>(Vec(box.size.x - 10, 175));
