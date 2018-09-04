@@ -120,11 +120,7 @@ struct TextButton : SubControls::ButtonBase {
 
 // Icons
 
-struct MBIconWidget : SubControls::ButtonBase,SVGWidget {
-	ModBrowserWidget *mbw;
-};
-
-struct PluginIcon : MBIconWidget {
+struct PluginIcon : SubControls::ButtonBase,SVGWidget {
 	ModBrowserWidget *mbw;
 	int selected = 0;
 	PluginIcon() {
@@ -134,7 +130,8 @@ struct PluginIcon : MBIconWidget {
 	void onAction(EventAction &e) override;
 };
 
-struct TagIcon : MBIconWidget {
+struct TagIcon : SubControls::ButtonBase,SVGWidget {
+	ModBrowserWidget *mbw;
 	int selected = 0;
 	TagIcon() {
 		box.size.x = 30;
@@ -143,7 +140,8 @@ struct TagIcon : MBIconWidget {
 	void onAction(EventAction &e) override;
 };
 
-struct FavIcon : MBIconWidget {
+struct FavIcon : SubControls::ButtonBase,SVGWidget {
+	ModBrowserWidget *mbw;
 	int selected = 0;
 	FavIcon() {
 		box.size.x = 30;
@@ -152,7 +150,8 @@ struct FavIcon : MBIconWidget {
 	void onAction(EventAction &e) override;
 };
 
-struct LoadIcon : MBIconWidget {
+struct LoadIcon : SubControls::ButtonBase,SVGWidget {
+	ModBrowserWidget *mbw;
 	int selected = 0;
 	LoadIcon() {
 		box.size.x = 30;
@@ -161,7 +160,8 @@ struct LoadIcon : MBIconWidget {
 	void onAction(EventAction &e) override;
 };
 
-struct MinimizeIcon : MBIconWidget {
+struct MinimizeIcon : SubControls::ButtonBase,SVGWidget {
+	ModBrowserWidget *mbw;
 	MinimizeIcon() {
 		box.size.x = 30;
 		box.size.y = 30;
