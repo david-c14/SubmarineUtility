@@ -3,6 +3,70 @@
 
 namespace SubControls {
 
+struct RowShift {
+	Vec position;
+	int handled = false; 
+};
+
+struct RowShifter {
+	std::vector<std::shared_ptr<RowShift>> rows;
+	Widget *baseWidget;
+	unsigned int addRow(Vec position) {
+		for (std::shared_ptr<RowShift> row : rows) {
+			if (row->position.y != position.y)
+				continue;
+			if (row->handled)
+				return false;
+			if (row->position.x <= position.x)
+				return false;
+			row->position.x = position.x;
+			return true;
+		}
+		std::shared_ptr<RowShift> row = std::make_shared<RowShift>();
+		row->position.x = position.x;
+		row->position.y = position.y;
+		rows.push_back(row);
+		return true;
+	}	
+	unsigned int shift(float delta) {
+		unsigned moreWork = false;
+		for (std::shared_ptr<RowShift> row : rows) {
+			if (row->handled)
+				continue;
+			row->handled = true;
+			for (Widget *w : gRackWidget->moduleContainer->children) {
+				if (baseWidget == w)
+					continue;
+				if (row->position.x > w->box.pos.x)
+					continue;
+				if (row->position.y != w->box.pos.y) {
+					if (row->position.y > w->box.pos.y) {
+						if (row->position.y < w->box.pos.y + w->box.size.y) {
+							for (float i = 0; i < w->box.size.y; i += RACK_GRID_HEIGHT) {
+								Vec newRow;
+								newRow.x = w->box.pos.x;
+								newRow.y = w->box.pos.y + i;
+								moreWork |= addRow(newRow);
+							}
+						}
+					}
+					continue;
+				}
+				w->box.pos.x += delta;
+				if (w->box.size.y > RACK_GRID_HEIGHT) {
+					for (float i = 0; i < w->box.size.y; i += RACK_GRID_HEIGHT) {
+						Vec newRow;
+						newRow.x = w->box.pos.x;
+						newRow.y = w->box.pos.y + i;
+						moreWork |= addRow(newRow);
+					}
+				}
+			}
+		}
+		return moreWork;
+	}
+};
+
 SizeableModuleWidget::SizeableModuleWidget(Module *module) : ModuleWidget(module) {
 	box.size.x = moduleWidth;
 	box.size.y = 380;
@@ -89,6 +153,7 @@ void SizeableModuleWidget::ShiftOthers(float delta) {
 		return;
 	if (delta == 0.0f)
 		return;
+/*
 	for (Widget *w : gRackWidget->moduleContainer->children) {
 		if (this->box.pos.y != w->box.pos.y)
 			continue;
@@ -98,6 +163,11 @@ void SizeableModuleWidget::ShiftOthers(float delta) {
 			continue;
 		w->box.pos.x += delta;
 	}
+*/
+	RowShifter shifter;
+	shifter.baseWidget = this;
+	shifter.addRow(this->box.pos);
+	while (shifter.shift(delta));
 }
 
 void SizeableModuleWidget::Minimize(unsigned int minimize) {
