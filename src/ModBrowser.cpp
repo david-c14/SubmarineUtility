@@ -4,14 +4,6 @@
 #include "window.hpp"
 #include "osdialog.h"
 
-struct ModBrowserWidget;
-struct ListElement {
-	ModBrowserWidget *mbw;
-	virtual void onAction(EventAction &e) { debug ("Not Implemented"); }
-	virtual std::string GetLabelOne() { return std::string("Label 1"); };
-	virtual std::string GetLabelTwo() { return std::string("Label 2"); };
-};
-
 namespace SubControls {
 
 struct BackPanel : OpaqueWidget {
@@ -33,10 +25,26 @@ struct ButtonBase : Component {
 
 struct SubLogo : SVGWidget{};
 
-} // SubControls
+struct ModuleDragHandle;
+struct SizeableModuleWidget;
+
+struct SizeableModuleWidget : ModuleWidget {
+	float moduleWidth = 300.0f;
+	ModuleDragHandle *handle;
+	BackPanel *backPanel;
+	SubLogo *minimizeLogo;
+	SubLogo *maximizeLogo;
+	std::shared_ptr<Font> font = Font::load(assetGlobal("res/fonts/DejaVuSans.ttf"));
+	std::string moduleName;
+
+	SizeableModuleWidget(Module *module); 
+	void draw(NVGcontext *vg) override;
+	void Resize();
+	virtual void onResize() { }; 
+};
 
 struct ModuleDragHandle : Widget {
-	ModBrowserWidget *mbw;
+	SizeableModuleWidget *smw;
 	float dragX;
 	Rect originalBox;
 	ModuleDragHandle() {
@@ -51,6 +59,125 @@ struct ModuleDragHandle : Widget {
 	void draw(NVGcontext *vg) override;
 	void onDragStart(EventDragStart &e) override;
 	void onDragMove(EventDragMove &e) override;
+};
+
+SizeableModuleWidget::SizeableModuleWidget(Module *module) : ModuleWidget(module) {
+	box.size.x = moduleWidth;
+	box.size.y = 380;
+	handle = Widget::create<ModuleDragHandle>(Vec(box.size.x - 10, 175));
+	handle->smw = this;
+	addChild(handle);
+
+	backPanel = Widget::create<BackPanel>(Vec(10, 15));
+	backPanel->box.size.x = box.size.x = 20;
+	backPanel->box.size.y = box.size.y - 30;
+	addChild(backPanel);
+
+	minimizeLogo = Widget::create<SubLogo>(Vec(0,0));
+	minimizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub2.svg")));
+	minimizeLogo->visible = false;
+	addChild(minimizeLogo);
+
+	maximizeLogo = Widget::create<SubLogo>(Vec(moduleWidth - 20, 365));
+	maximizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub1.svg")));
+	addChild(maximizeLogo);
+}
+
+void SizeableModuleWidget::Resize() {
+	backPanel->box.size.x = box.size.x - 20;
+	handle->box.pos.x = box.size.x - 10;
+	maximizeLogo->box.pos.x = box.size.x - 20;
+	onResize();
+}
+
+void SizeableModuleWidget::draw(NVGcontext *vg) {
+	nvgBeginPath(vg);
+	nvgRect(vg,0,0,box.size.x, box.size.y);
+	nvgFillColor(vg,nvgRGB(0x29, 0x4f, 0x77));
+	nvgFill(vg);
+	nvgBeginPath(vg);
+	nvgMoveTo(vg, 0, 0);
+	nvgLineTo(vg, box.size.x, 0);
+	nvgLineTo(vg, box.size.x - 1, 1);
+	nvgLineTo(vg, 1, 1);
+	nvgLineTo(vg, 1, box.size.y - 1);
+	nvgLineTo(vg, 0, box.size.y);
+	nvgClosePath(vg);
+	nvgFillColor(vg, nvgRGB(0x31, 0xbe, 0xa5));
+	nvgFill(vg);
+	nvgMoveTo(vg, box.size.x, 0);
+	nvgLineTo(vg, box.size.x, box.size.y);
+	nvgLineTo(vg, 0, box.size.y);
+	nvgLineTo(vg, 1, box.size.y - 1);
+	nvgLineTo(vg, box.size.x - 1, box.size.y - 1);
+	nvgLineTo(vg, box.size.x - 1, 1);
+	nvgClosePath(vg);
+	nvgFillColor(vg, nvgRGB(0x18, 0x2d, 0x44));
+	nvgFill(vg);
+	if (moduleWidth > 0) {
+		nvgFontSize(vg, 14);
+		nvgFontFaceId(vg, font->handle);
+		nvgFillColor(vg, nvgRGBA(0x71, 0x9f, 0xcf, 0xff));
+		nvgTextAlign(vg, NVG_ALIGN_LEFT);
+		nvgText(vg, 3, 378, "submarine", NULL);
+		nvgTextAlign(vg, NVG_ALIGN_CENTER);
+		nvgText(vg, box.size.x / 2, 12, moduleName.c_str(), NULL);
+	}
+	else {
+		nvgSave(vg);
+		nvgRotate(vg, -M_PI / 2);
+		nvgFontSize(vg, 14);
+		nvgFontFaceId(vg, font->handle);
+		nvgFillColor(vg, nvgRGBA(0x71, 0x9f, 0xcf, 0xff));
+		nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
+		nvgText(vg, -97.5, 7.5, moduleName.c_str(), NULL);
+		nvgText(vg, -277.5, 7.5, "submarine", NULL);
+		nvgRestore(vg);
+	}
+	ModuleWidget::draw(vg);
+}
+
+void ModuleDragHandle::onDragStart(EventDragStart &e) {
+	dragX = gRackWidget->lastMousePos.x;
+	originalBox = smw->box;
+}
+
+void ModuleDragHandle::onDragMove(EventDragMove &e) {
+
+	float newDragX = gRackWidget->lastMousePos.x;
+	float deltaX = newDragX - dragX;
+
+	Rect newBox = originalBox;
+	const float minWidth = 13 * RACK_GRID_WIDTH;
+	newBox.size.x += deltaX;
+	newBox.size.x = fmaxf(newBox.size.x, minWidth);
+	newBox.size.x = roundf(newBox.size.x / RACK_GRID_WIDTH) * RACK_GRID_WIDTH;
+	gRackWidget->requestModuleBox(smw, newBox);
+	smw->moduleWidth = smw->box.size.x;
+	smw->Resize();
+}
+
+void ModuleDragHandle::draw(NVGcontext *vg) {
+	for (float x = 2.0; x <= 8.0; x += 2.0) {
+		nvgBeginPath(vg);
+		const float margin = 5.0;
+		nvgMoveTo(vg, x + 0.5, margin + 0.5);
+		nvgLineTo(vg, x + 0.5, box.size.y - margin + 0.5);
+		nvgStrokeWidth(vg, 1.0);
+		nvgStrokeColor(vg, nvgRGBAf(0.5, 0.5, 0.5, 0.5));
+		nvgStroke(vg);
+	}
+}
+
+} // SubControls
+
+struct ModBrowserWidget;
+
+struct ListElement {
+	ModBrowserWidget *mbw;
+	virtual void onAction(EventAction &e) { debug ("Not Implemented"); }
+	virtual std::string GetLabelOne() { return std::string("Label 1"); };
+	virtual std::string GetLabelTwo() { return std::string("Label 2"); };
 };
 
 struct TextButton : SubControls::ButtonBase {
@@ -244,9 +371,7 @@ struct TagBackElement : ListElement {
 	void onAction(EventAction &e) override;
 };
 
-struct ModBrowserWidget : ModuleWidget {
-	SubControls::BackPanel *backPanel;
-	ModuleDragHandle *handle;
+struct ModBrowserWidget : SubControls::SizeableModuleWidget {
 	Widget *scrollContainer;
 	ScrollWidget *scrollWidget;
 	PluginIcon *pluginIcon;
@@ -255,48 +380,25 @@ struct ModBrowserWidget : ModuleWidget {
 	LoadIcon *loadIcon;
 	MinimizeIcon *minimizeIcon;
 	MaximizeButton *maximizeButton;
-	SubControls::SubLogo *minimizeLogo;
-	SubControls::SubLogo *maximizeLogo;
 	float width;
 	float zoom = 1.0f;
-	float moduleWidth = 300.0f;
 	int stabilized = false;
 	std::list<std::shared_ptr<PluginElement>> pluginList;
 	std::list<std::shared_ptr<TagElement>> tagList;
 	std::list<std::shared_ptr<ModelElement>> modelList;
 	std::string allfilters;
-	std::shared_ptr<Font> font = Font::load(assetGlobal( "res/fonts/DejaVuSans.ttf"));
-	ModBrowserWidget(Module *module) : ModuleWidget(module) {
+	ModBrowserWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
+		moduleName = "Module Browser";
 		zoom = clamp(gRackScene->zoomWidget->zoom, 0.25f, 1.0f);
 		allfilters.assign(PATCH_FILTERS);
 		allfilters.append(";");
 		allfilters.append(PRESET_FILTERS);
-		box.size.x = moduleWidth;
-		box.size.y = 380;
 
-		minimizeLogo = Widget::create<SubControls::SubLogo>(Vec(0,0));
-		minimizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub2.svg")));
-		minimizeLogo->visible = false;
-		addChild(minimizeLogo);
-		
-		maximizeLogo = Widget::create<SubControls::SubLogo>(Vec(moduleWidth-20,365));
-		maximizeLogo->setSVG(SVG::load(assetPlugin(plugin, "res/Sub1.svg")));
-		addChild(maximizeLogo);
-
-		handle = Widget::create<ModuleDragHandle>(Vec(box.size.x - 10, 175));
-		handle->mbw = this;
-		addChild(handle);
-		
 		maximizeButton = Widget::create<MaximizeButton>(Vec(0, 175));
 		maximizeButton->mbw = this;
 		maximizeButton->visible = false;
 		addChild(maximizeButton);
 		
-		backPanel = Widget::create<SubControls::BackPanel>(Vec(10, 15));
-		backPanel->box.size.x = box.size.x - 20;
-		backPanel->box.size.y = box.size.y - 30;
-		addChild(backPanel);
-
 		pluginIcon = Widget::create<PluginIcon>(Vec(2, 2));
 		pluginIcon->selected = 1;
 		pluginIcon->mbw = this;
@@ -370,11 +472,9 @@ struct ModBrowserWidget : ModuleWidget {
 		tagIcon->selected = 0;
 		favIcon->selected = 0;
 	}
-	void Resize() {
-		backPanel->box.size.x = box.size.x - 20;
+
+	void onResize() override {
 		scrollWidget->box.size.x = box.size.x - 20;
-		handle->box.pos.x = box.size.x - 10;
-		maximizeLogo->box.pos.x = box.size.x - 20;
 		SetListWidth();
 	} 
 
@@ -727,53 +827,6 @@ struct ModBrowserWidget : ModuleWidget {
 		ModuleWidget::step();
 	} 
 
-	void draw(NVGcontext *vg) override {
-		nvgBeginPath(vg);
-		nvgRect(vg,0,0,box.size.x, box.size.y);
-		nvgFillColor(vg,nvgRGB(0x29, 0x4f, 0x77));
-		nvgFill(vg);
-		nvgBeginPath(vg);
-		nvgMoveTo(vg, 0, 0);
-		nvgLineTo(vg, box.size.x, 0);
-		nvgLineTo(vg, box.size.x - 1, 1);
-		nvgLineTo(vg, 1, 1);
-		nvgLineTo(vg, 1, box.size.y - 1);
-		nvgLineTo(vg, 0, box.size.y);
-		nvgClosePath(vg);
-		nvgFillColor(vg, nvgRGB(0x31, 0xbe, 0xa5));
-		nvgFill(vg);
-		nvgMoveTo(vg, box.size.x, 0);
-		nvgLineTo(vg, box.size.x, box.size.y);
-		nvgLineTo(vg, 0, box.size.y);
-		nvgLineTo(vg, 1, box.size.y - 1);
-		nvgLineTo(vg, box.size.x - 1, box.size.y - 1);
-		nvgLineTo(vg, box.size.x - 1, 1);
-		nvgClosePath(vg);
-		nvgFillColor(vg, nvgRGB(0x18, 0x2d, 0x44));
-		nvgFill(vg);
-		if (moduleWidth > 0) {
-			nvgFontSize(vg, 14);
-			nvgFontFaceId(vg, font->handle);
-			nvgFillColor(vg, nvgRGBA(0x71, 0x9f, 0xcf, 0xff));
-			nvgTextAlign(vg, NVG_ALIGN_LEFT);
-			nvgText(vg, 3, 378, "submarine", NULL);
-			nvgTextAlign(vg, NVG_ALIGN_CENTER);
-			nvgText(vg, box.size.x / 2, 12, "Module Browser", NULL);
-		}
-		else {
-			nvgSave(vg);
-			nvgRotate(vg, -M_PI / 2);
-			nvgFontSize(vg, 14);
-			nvgFontFaceId(vg, font->handle);
-			nvgFillColor(vg, nvgRGBA(0x71, 0x9f, 0xcf, 0xff));
-			nvgTextAlign(vg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE);
-			nvgText(vg, -97.5, 7.5, "Module Browser", NULL);
-			nvgText(vg, -277.5, 7.5, "submarine", NULL);
-			nvgRestore(vg);
-		}
-		Widget::draw(vg);
-	}
-
 	json_t *toJson() override {
 		json_t *rootJ = ModuleWidget::toJson();
 
@@ -872,38 +925,6 @@ void PluginBackElement::onAction(EventAction &e) {
 
 void TagBackElement::onAction(EventAction &e) {
 	mbw->AddTags();
-}
-
-void ModuleDragHandle::onDragStart(EventDragStart &e) {
-	dragX = gRackWidget->lastMousePos.x;
-	originalBox = mbw->box;
-}
-
-void ModuleDragHandle::onDragMove(EventDragMove &e) {
-
-	float newDragX = gRackWidget->lastMousePos.x;
-	float deltaX = newDragX - dragX;
-
-	Rect newBox = originalBox;
-	const float minWidth = 13 * RACK_GRID_WIDTH;
-	newBox.size.x += deltaX;
-	newBox.size.x = fmaxf(newBox.size.x, minWidth);
-	newBox.size.x = roundf(newBox.size.x / RACK_GRID_WIDTH) * RACK_GRID_WIDTH;
-	gRackWidget->requestModuleBox(mbw, newBox);
-	mbw->moduleWidth = mbw->box.size.x;
-	mbw->Resize();
-}
-
-void ModuleDragHandle::draw(NVGcontext *vg) {
-	for (float x = 2.0; x <= 8.0; x += 2.0) {
-		nvgBeginPath(vg);
-		const float margin = 5.0;
-		nvgMoveTo(vg, x + 0.5, margin + 0.5);
-		nvgLineTo(vg, x + 0.5, box.size.y - margin + 0.5);
-		nvgStrokeWidth(vg, 1.0);
-		nvgStrokeColor(vg, nvgRGBAf(0.5, 0.5, 0.5, 0.5));
-		nvgStroke(vg);
-	}
 }
 
 Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("Submarine (Utilities)", "ModBrowser", "ModuleBrowser", UTILITY_TAG);
