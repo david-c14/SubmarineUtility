@@ -119,7 +119,8 @@ struct RowShifter {
 				return;
 			}
 			// Have we got enough space to shuffle up before the multi-row element
-			float space = endPoint - baseWidget->box.pos.x + baseWidget->box.pos.y;
+			float space = endPoint - baseWidget->box.pos.x - baseWidget->box.size.x;
+			debug("Space %f", space);
 			for (Widget *w : gRackWidget->moduleContainer->children) {
 				if (w->box.pos.y != row->position.y)
 					continue;			// This is not the row we are looking for
@@ -128,7 +129,9 @@ struct RowShifter {
 				if (w->box.pos.x >= endPoint)
 					continue;			// This is to the right of the region we are looking at
 				space -= w->box.size.x;
+				debug("Space adjusted to %f", space);
 			}
+			debug("Space %f delta %f", space, delta);
 			if (space >= delta) {
 				shortShiftRight(endPoint);		// Just shift upto the endPoint
 				return;
@@ -255,6 +258,25 @@ void SizeableModuleWidget::Minimize(unsigned int minimize) {
 		handle->visible = true;
 		Resize();
 	}
+}
+
+json_t *SizeableModuleWidget::toJson() {
+	json_t *rootJ = ModuleWidget::toJson();
+	
+	// moduleWidth
+	json_object_set_new (rootJ, "width", json_real(moduleWidth));
+
+	return rootJ;
+}
+
+void SizeableModuleWidget::fromJson(json_t *rootJ) {
+	ModuleWidget::fromJson(rootJ);
+
+	// width
+	json_t *widthJ = json_object_get(rootJ, "width");
+	if (widthJ)
+		moduleWidth = json_number_value(widthJ);
+	Minimize(moduleWidth < 0);
 }
 
 void ModuleDragHandle::onDragStart(EventDragStart &e) {

@@ -60,6 +60,8 @@ struct SizeableModuleWidget : ModuleWidget {
 	void Resize();
 	void Minimize(unsigned int minimize);
 	void ShiftOthers(float delta);
+	json_t *toJson() override;
+	void fromJson(json_t *rootJ) override;
 
 	virtual void onResize() { }; 
 };

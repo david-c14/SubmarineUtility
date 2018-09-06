@@ -589,24 +589,6 @@ struct ModBrowserWidget : SubControls::SizeableModuleWidget {
 		ModuleWidget::step();
 	} 
 
-	json_t *toJson() override {
-		json_t *rootJ = ModuleWidget::toJson();
-
-		// // width
-		json_object_set_new(rootJ, "width", json_real(moduleWidth));
-
-		return rootJ;
-	}
-
-	void fromJson(json_t *rootJ) override {
-		ModuleWidget::fromJson(rootJ);
-
-		// width
-		json_t *widthJ = json_object_get(rootJ, "width");
-		if (widthJ)
-			moduleWidth = json_number_value(widthJ);
-		Minimize(moduleWidth < 0);	
-	}
 };
 
 // Icon onAction
