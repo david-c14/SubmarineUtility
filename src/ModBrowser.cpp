@@ -685,4 +685,40 @@ void TagBackElement::onAction(EventAction &e) {
 	mbw->AddTags();
 }
 
-Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("Submarine (Utilities)", "ModBrowser", "ModuleBrowser", UTILITY_TAG);
+struct Blank2 : ModuleWidget {
+	Blank2(Module *module) : ModuleWidget(module) {
+		box.size = Vec(RACK_GRID_WIDTH * 5, RACK_GRID_HEIGHT * 2);
+		{
+			Panel *panel = new LightPanel();
+			panel->box.size = box.size;
+			addChild(panel);
+		}
+	}
+};
+
+struct Blank3 : ModuleWidget {
+	Blank3(Module *module) : ModuleWidget(module) {
+		box.size = Vec(RACK_GRID_WIDTH * 5, RACK_GRID_HEIGHT * 3);
+		{
+			Panel *panel = new LightPanel();
+			panel->box.size = box.size;
+			addChild(panel);
+		}
+	}
+};
+
+struct Blank5 : ModuleWidget {
+	Blank5(Module *module) : ModuleWidget(module) {
+		box.size = Vec(RACK_GRID_WIDTH * 5, RACK_GRID_HEIGHT * 5);
+		{
+			Panel *panel = new LightPanel();
+			panel->box.size = box.size;
+			addChild(panel);
+		}
+	}
+};
+
+Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("Submarine (Utilities)", "ModBrowser", "Module Browser", UTILITY_TAG);
+Model *modelBlank2 = Model::create<Module, Blank2>("Submarine (Utilities)", "Blank2", "2U Blanking Plate", BLANK_TAG);
+Model *modelBlank3 = Model::create<Module, Blank3>("Submarine (Utilities)", "Blank3", "3U Blanking Plate", BLANK_TAG);
+Model *modelBlank5 = Model::create<Module, Blank5>("Submarine (Utilities)", "Blank5", "5U Blanking Plate", BLANK_TAG);

@@ -7,3 +7,6 @@ extern Plugin *plugin;
 
 // Forward-declare each Model, defined in each module source file
 extern Model *modelModBrowser;
+extern Model *modelBlank2;
+extern Model *modelBlank3;
+extern Model *modelBlank5;

@@ -12,33 +12,34 @@ struct RowShifter {
 	std::vector<std::shared_ptr<RowShift>> rows;
 	Widget *baseWidget;
 	unsigned int addRow(Vec position) {
+		// Search for row in existing list
 		for (std::shared_ptr<RowShift> row : rows) {
 			if (row->position.y != position.y)
-				continue;
+				continue;			// This is not the row we are looking for
 			if (row->handled)
-				return false;
+				return false;			// This is the row but it's been done already
 			if (row->position.x <= position.x)
-				return false;
-			row->position.x = position.x;
+				return false;			// This is the row already and covers the same ground
+			row->position.x = position.x;		// We need to move the start point further to the left
 			return true;
 		}
 		std::shared_ptr<RowShift> row = std::make_shared<RowShift>();
 		row->position.x = position.x;
 		row->position.y = position.y;
 		rows.push_back(row);
-		return true;
+		return true;					// We didn't find the row so we added it.
 	}	
 	unsigned int shift(float delta) {
 		unsigned moreWork = false;
 		for (std::shared_ptr<RowShift> row : rows) {
 			if (row->handled)
-				continue;
+				continue;			// This row has been done already
 			row->handled = true;
 			for (Widget *w : gRackWidget->moduleContainer->children) {
 				if (baseWidget == w)
-					continue;
+					continue;		// We are not moving the widget that caused this.
 				if (row->position.x > w->box.pos.x)
-					continue;
+					continue;		// This is to the left of our start position
 				if (row->position.y != w->box.pos.y) {
 					if (row->position.y > w->box.pos.y) {
 						if (row->position.y < w->box.pos.y + w->box.size.y) {
@@ -46,24 +47,94 @@ struct RowShifter {
 								Vec newRow;
 								newRow.x = w->box.pos.x;
 								newRow.y = w->box.pos.y + i;
-								moreWork |= addRow(newRow);
+								moreWork |= addRow(newRow);	// These are the rows covered by a multi-row widget
 							}
 						}
 					}
 					continue;
 				}
-				w->box.pos.x += delta;
 				if (w->box.size.y > RACK_GRID_HEIGHT) {
 					for (float i = 0; i < w->box.size.y; i += RACK_GRID_HEIGHT) {
 						Vec newRow;
 						newRow.x = w->box.pos.x;
 						newRow.y = w->box.pos.y + i;
-						moreWork |= addRow(newRow);
+						moreWork |= addRow(newRow);			// These are the rows covered by a multi row widget
 					}
 				}
+				w->box.pos.x += delta;						// This widget should be moved
 			}
 		}
 		return moreWork;
+	}
+	void shortShiftRight(float endPoint) {
+		Widget *widgetToMove = baseWidget;
+		std::shared_ptr<RowShift> row = rows[0];
+		for (Widget *w : gRackWidget->moduleContainer->children) {
+			if (w->box.pos.y != row->position.y)
+				continue;			// This is not the row we are looking for
+			if (w->box.pos.x <= row->position.x)	
+				continue;			// This is to the left of the region we are looking at
+			if (w->box.pos.x >= endPoint)
+				continue;			// This is to the right of the region we are looking at
+			if (w->box.pos.x > widgetToMove->box.pos.x)
+				widgetToMove = w;
+		}
+		if (widgetToMove == baseWidget)
+			return;					// Nothing more to move
+		float delta = endPoint - widgetToMove->box.pos.x - widgetToMove->box.size.x;
+		widgetToMove->box.pos.x += delta;		// Move this widget as far to the right as we can
+		endPoint -= widgetToMove->box.size.x;		// Adjust our endpoint back to exclude this widget
+		shortShiftRight(endPoint);			// Recurse to move the next widget
+	}
+	void shortShiftLeft(float delta, float endPoint) {
+		std::shared_ptr<RowShift> row = rows[0];
+		for (Widget *w : gRackWidget->moduleContainer->children) {
+			if (w->box.pos.y != row->position.y)
+				continue;			// This is not the row we are looking for
+			if (w->box.pos.x  <= row->position.x)	
+				continue;			// This is to the left of the region we are looking at
+			if (w->box.pos.x >= endPoint)
+				continue;			// This is to the right of the region we are looking at
+			w->box.pos.x += delta;
+		}
+	}
+	void process(float delta) {
+		// Test to see if any multi-row items are involved
+		float endPoint = 0.0f;
+		std::shared_ptr<RowShift> row = rows[0];
+		for (Widget *w : gRackWidget->moduleContainer->children) {
+			if (w->box.size.y == RACK_GRID_HEIGHT)
+				continue;			// This is a single row widget
+			if (w->box.pos.y > row->position.y)
+				continue;			// This is below the row
+			if ((w->box.pos.y + w->box.size.y) > (row->position.y + RACK_GRID_HEIGHT)) {	// This is what we are looking for
+				if ((endPoint == 0.0f) || endPoint > w->box.pos.x) {
+					endPoint = w->box.pos.x;
+				}
+			}
+		}	
+		if (endPoint > 0.0f) {			// There is a multi-row element in the way
+			if (delta < 0.0f) {
+				shortShiftLeft(delta, endPoint);	// Just shift upto the endPoint
+				return;
+			}
+			// Have we got enough space to shuffle up before the multi-row element
+			float space = endPoint - baseWidget->box.pos.x + baseWidget->box.pos.y;
+			for (Widget *w : gRackWidget->moduleContainer->children) {
+				if (w->box.pos.y != row->position.y)
+					continue;			// This is not the row we are looking for
+				if (w->box.pos.x <= row->position.x)	
+					continue;			// This is to the left of the region we are looking at
+				if (w->box.pos.x >= endPoint)
+					continue;			// This is to the right of the region we are looking at
+				space -= w->box.size.x;
+			}
+			if (space >= delta) {
+				shortShiftRight(endPoint);		// Just shift upto the endPoint
+				return;
+			}
+		}
+		while (shift(delta));
 	}
 };
 
@@ -75,7 +146,7 @@ SizeableModuleWidget::SizeableModuleWidget(Module *module) : ModuleWidget(module
 	addChild(handle);
 
 	backPanel = Widget::create<BackPanel>(Vec(10, 15));
-	backPanel->box.size.x = box.size.x = 20;
+	backPanel->box.size.x = box.size.x - 20;
 	backPanel->box.size.y = box.size.y - 30;
 	addChild(backPanel);
 
@@ -153,21 +224,10 @@ void SizeableModuleWidget::ShiftOthers(float delta) {
 		return;
 	if (delta == 0.0f)
 		return;
-/*
-	for (Widget *w : gRackWidget->moduleContainer->children) {
-		if (this->box.pos.y != w->box.pos.y)
-			continue;
-		if (this->box.pos.x > w->box.pos.x)
-			continue;
-		if (this == w)
-			continue;
-		w->box.pos.x += delta;
-	}
-*/
 	RowShifter shifter;
 	shifter.baseWidget = this;
 	shifter.addRow(this->box.pos);
-	while (shifter.shift(delta));
+	shifter.process(delta);
 }
 
 void SizeableModuleWidget::Minimize(unsigned int minimize) {
