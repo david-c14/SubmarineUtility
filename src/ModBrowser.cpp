@@ -701,6 +701,3 @@ struct Blank5 : ModuleWidget {
 };
 
 Model *modelModBrowser = Model::create<Module, ModBrowserWidget>("Submarine (Utilities)", "ModBrowser", "Module Browser", UTILITY_TAG);
-Model *modelBlank2 = Model::create<Module, Blank2>("Submarine (Utilities)", "Blank2", "2U Blanking Plate", BLANK_TAG);
-Model *modelBlank3 = Model::create<Module, Blank3>("Submarine (Utilities)", "Blank3", "3U Blanking Plate", BLANK_TAG);
-Model *modelBlank5 = Model::create<Module, Blank5>("Submarine (Utilities)", "Blank5", "5U Blanking Plate", BLANK_TAG);
