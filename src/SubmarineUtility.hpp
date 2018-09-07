@@ -7,3 +7,4 @@ extern Plugin *plugin;
 
 // Forward-declare each Model, defined in each module source file
 extern Model *modelModBrowser;
+extern Model *modelWireManager;

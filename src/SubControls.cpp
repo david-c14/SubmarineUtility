@@ -180,25 +180,35 @@ void SizeableModuleWidget::draw(NVGcontext *vg) {
 	nvgRect(vg,0,0,box.size.x, box.size.y);
 	nvgFillColor(vg,nvgRGB(0x29, 0x4f, 0x77));
 	nvgFill(vg);
+
 	nvgBeginPath(vg);
 	nvgMoveTo(vg, 0, 0);
 	nvgLineTo(vg, box.size.x, 0);
 	nvgLineTo(vg, box.size.x - 1, 1);
 	nvgLineTo(vg, 1, 1);
+	nvgClosePath(vg);
+	nvgMoveTo(vg, 1, 1);
 	nvgLineTo(vg, 1, box.size.y - 1);
 	nvgLineTo(vg, 0, box.size.y);
+	nvgLineTo(vg, 0, 0);
 	nvgClosePath(vg);
-	nvgFillColor(vg, nvgRGB(0x31, 0xbe, 0xa5));
+	nvgFillColor(vg, nvgRGB(0x3a, 0x6e, 0xa5));
 	nvgFill(vg);
+
+	nvgBeginPath(vg);
 	nvgMoveTo(vg, box.size.x, 0);
 	nvgLineTo(vg, box.size.x, box.size.y);
+	nvgLineTo(vg, box.size.x - 1, box.size.y - 1);
+	nvgLineTo(vg, box.size.x -1, 1);
+	nvgClosePath(vg);
+	nvgMoveTo(vg, box.size.x, box.size.y);
 	nvgLineTo(vg, 0, box.size.y);
 	nvgLineTo(vg, 1, box.size.y - 1);
 	nvgLineTo(vg, box.size.x - 1, box.size.y - 1);
-	nvgLineTo(vg, box.size.x - 1, 1);
 	nvgClosePath(vg);
 	nvgFillColor(vg, nvgRGB(0x18, 0x2d, 0x44));
 	nvgFill(vg);
+
 	if (moduleWidth > 0) {
 		nvgFontSize(vg, 14);
 		nvgFontFaceId(vg, font->handle);
