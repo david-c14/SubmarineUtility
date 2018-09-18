@@ -49,7 +49,10 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	}
 
 	void step() override {
-		stabilized = true;
+		if (!stabilized) {
+			wireCount = gRackWidget->wireContainer->children.size();
+			stabilized = true;
+		}
 		int newSize = gRackWidget->wireContainer->children.size();
 		if (newSize < wireCount) {
 			wireCount = newSize;
