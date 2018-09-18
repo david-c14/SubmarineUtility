@@ -73,6 +73,29 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 			else
 				lastWire = NULL;
 		}
+		ModuleWidget *focusedModuleWidget = nullptr;
+		if (gHoveredWidget) {
+			focusedModuleWidget = dynamic_cast<ModuleWidget *>(gHoveredWidget);
+			if (!focusedModuleWidget)
+				focusedModuleWidget = gHoveredWidget->getAncestorOfType<ModuleWidget>();
+		}
+		for (Widget *widget : gRackWidget->wireContainer->children) {
+			WireWidget *wire = dynamic_cast<WireWidget *>(widget);
+			if (focusedModuleWidget) {
+				if (wire->outputPort && wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+					wire->color = nvgTransRGBA(wire->color, 0xFF);
+				}
+				else if (wire->inputPort && wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+					wire->color = nvgTransRGBA(wire->color, 0xFF);
+				}
+				else {
+					wire->color = nvgTransRGBA(wire->color, 0x10);
+				}
+			}
+			else {
+				wire->color = nvgTransRGBA(wire->color, 0xFF);
+			}
+		}
 		ModuleWidget::step();
 	} 
 
