@@ -408,7 +408,6 @@ struct ModBrowserWidget : SubControls::SizeableModuleWidget {
 			
 		if (path) {
 			Load(path);
-			gRackWidget->lastPath = path;
 			free(path);
 		}
 		osdialog_filters_free(filters);
