@@ -196,6 +196,7 @@ struct ModBrowserWidget : SubControls::SizeableModuleWidget {
 	std::list<std::shared_ptr<TagElement>> tagList;
 	std::list<std::shared_ptr<ModelElement>> modelList;
 	std::string allfilters;
+	std::string lastPath;
 	ModBrowserWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
 		moduleName = "Module Browser";
 		zoom = clamp(gRackScene->zoomWidget->zoom, 0.25f, 1.0f);
@@ -395,19 +396,21 @@ struct ModBrowserWidget : SubControls::SizeableModuleWidget {
 		SetListWidth();
 	}
 	void Load() {
-		std::string dir;
-		if (gRackWidget->lastPath.empty()) {
-			dir = assetLocal("patches");
-			systemCreateDirectory(dir);
-		}
-		else {
-			dir = stringDirectory(gRackWidget->lastPath);
+		if (lastPath.empty()) {
+			if (gRackWidget->lastPath.empty()) {
+				lastPath = assetLocal("patches");
+				systemCreateDirectory(lastPath);
+			}
+			else {
+				lastPath = stringDirectory(gRackWidget->lastPath);
+			}
 		}
 		osdialog_filters *filters = osdialog_filters_parse(allfilters.c_str());
-		char *path = osdialog_file(OSDIALOG_OPEN, dir.c_str(), NULL, filters);
+		char *path = osdialog_file(OSDIALOG_OPEN, lastPath.c_str(), NULL, filters);
 			
 		if (path) {
 			Load(path);
+			lastPath = stringDirectory(path);
 			free(path);
 		}
 		osdialog_filters_free(filters);
