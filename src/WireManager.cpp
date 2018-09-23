@@ -47,6 +47,15 @@ struct WMRadioButton : SubControls::ButtonBase {
 		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
 		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
 		nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
+		if (selected) {
+			nvgBeginPath(vg);
+			nvgCircle(vg, box.size.y / 2 + 1, box.size.y / 2, 5);
+			nvgFill(vg);
+		}
+		nvgBeginPath(vg);
+		nvgCircle(vg, box.size.y / 2 + 1, box.size.y / 2, 8);
+		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgStroke(vg);
 		Component::draw(vg);
 	}
 };
@@ -75,6 +84,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	
 	int wireCount = 0;
 	Widget *lastWire = NULL;
+	int highlight = 0;
 	WireManagerWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
 		moduleName = "Wire Manager";
 
@@ -171,27 +181,32 @@ debug("4");
 			else
 				lastWire = NULL;
 		}
-		ModuleWidget *focusedModuleWidget = nullptr;
-		if (gHoveredWidget) {
-			focusedModuleWidget = dynamic_cast<ModuleWidget *>(gHoveredWidget);
-			if (!focusedModuleWidget)
-				focusedModuleWidget = gHoveredWidget->getAncestorOfType<ModuleWidget>();
-		}
-		for (Widget *widget : gRackWidget->wireContainer->children) {
-			WireWidget *wire = dynamic_cast<WireWidget *>(widget);
-			if (focusedModuleWidget) {
-				if (wire->outputPort && wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
-					wire->color = nvgTransRGBA(wire->color, 0xFF);
-				}
-				else if (wire->inputPort && wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
-					wire->color = nvgTransRGBA(wire->color, 0xFF);
+		if (highlight) {
+			ModuleWidget *focusedModuleWidget = nullptr;
+			if (gHoveredWidget) {
+				focusedModuleWidget = dynamic_cast<ModuleWidget *>(gHoveredWidget);
+				if (!focusedModuleWidget)
+					focusedModuleWidget = gHoveredWidget->getAncestorOfType<ModuleWidget>();
+			}
+			for (Widget *widget : gRackWidget->wireContainer->children) {
+				WireWidget *wire = dynamic_cast<WireWidget *>(widget);
+				if (focusedModuleWidget) {
+					if (wire->outputPort && wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+						wire->color = nvgTransRGBA(wire->color, 0xFF);
+					}
+					else if (wire->inputPort && wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+						wire->color = nvgTransRGBA(wire->color, 0xFF);
+					}
+					else {
+						wire->color = nvgTransRGBA(wire->color, 0x10);
+					}
 				}
 				else {
-					wire->color = nvgTransRGBA(wire->color, 0x10);
+					if (highlight == 2)
+						wire->color = nvgTransRGBA(wire->color, 0x10);
+					else
+						wire->color = nvgTransRGBA(wire->color, 0xFF);
 				}
-			}
-			else {
-				wire->color = nvgTransRGBA(wire->color, 0xFF);
 			}
 		}
 		ModuleWidget::step();
@@ -211,18 +226,21 @@ debug("4");
 		highlightOn->selected = false;
 		highlightOff->selected = true;
 		highlightLow->selected = false;		
+		highlight = 0;
 	}
 
 	void HighlightLow() {
 		highlightOn->selected = false;
 		highlightOff->selected = false;
 		highlightLow->selected = true;
+		highlight = 1;
 	}
 
 	void HighlightOn() {
 		highlightOn->selected = true;
 		highlightOff->selected = false;
 		highlightLow->selected = false;
+		highlight = 2;
 	}
 
 };
