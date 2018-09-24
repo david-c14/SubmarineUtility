@@ -42,6 +42,34 @@ struct WMHighlightButton : SubControls::RadioButton {
 	void onAction(EventAction &e) override;	
 };
 
+struct WMWireCheck : SubControls::CheckButton {
+	void onAction(EventAction &e) override;
+};
+
+struct WMWireButton : SubControls::ButtonBase {
+	NVGcolor color;
+	WMWireCheck *wmc;
+	WMWireButton() {
+		wmc = Widget::create<WMWireCheck>(Vec(1,1));
+		wmc->box.size.x = 19;
+		wmc->box.size.y = 19;
+		addChild(wmc);
+	}
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgStrokeColor(vg, color);
+		nvgStrokeWidth(vg, 5);
+		nvgMoveTo(vg, 23, box.size.y / 2);
+		nvgLineTo(vg, box.size.x, box.size.y / 2);	
+		nvgStroke(vg);
+		SubControls::ButtonBase::draw(vg);
+	}
+};
+
+void WMWireCheck::onAction(EventAction &e) {
+	selected = !selected;
+}
+
 struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 	enum {
@@ -62,6 +90,8 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	int wireCount = 0;
 	Widget *lastWire = NULL;
 	int highlight = 0;
+	unsigned int newColorIndex = 0;
+
 	WireManagerWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
 		moduleName = "Wire Manager";
 
@@ -84,6 +114,42 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		colorWidget->box.size.x = box.size.x - 20;
 		colorWidget->box.size.y = box.size.y - 65;
 		backPanel->addChild(colorWidget);
+
+		float y = 0;
+		WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
+		wb->box.size.x = colorWidget->box.size.x;
+		wb->box.size.y = 21;
+		y += 21;
+		wb->color = nvgRGB(0xc9, 0xb7, 0x0e);
+		colorWidget->container->addChild(wb);
+
+		wb = Widget::create<WMWireButton>(Vec(0, y));
+		wb->box.size.x = colorWidget->box.size.x;
+		wb->box.size.y = 21;
+		y += 21;
+		wb->color = nvgRGB(0xc9, 0x18, 0x47);
+		colorWidget->container->addChild(wb);
+
+		wb = Widget::create<WMWireButton>(Vec(0, y));
+		wb->box.size.x = colorWidget->box.size.x;
+		wb->box.size.y = 21;
+		y += 21;
+		wb->color = nvgRGB(0x0c, 0x8e, 0x15);
+		colorWidget->container->addChild(wb);
+
+		wb = Widget::create<WMWireButton>(Vec(0, y));
+		wb->box.size.x = colorWidget->box.size.x;
+		wb->box.size.y = 21;
+		y += 21;
+		wb->color = nvgRGB(0x09, 0x86, 0xad);
+		colorWidget->container->addChild(wb);
+
+		wb = Widget::create<WMWireButton>(Vec(0, y));
+		wb->box.size.x = colorWidget->box.size.x;
+		wb->box.size.y = 21;
+		y += 21;
+		wb->color = nvgRGB(0xff, 0xae, 0xc9);
+		colorWidget->container->addChild(wb);
 
 		optionWidget = Widget::create<Widget>(Vec(0, 35));
 		optionWidget->box.size.x = box.size.x - 20;
@@ -134,7 +200,20 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 	void colorWire(Widget *widget) {
 		WireWidget *wire = dynamic_cast<WireWidget *>(widget);
-		NVGcolor newColor = nvgRGB(0xff, 0xae, 0xc9);
+		NVGcolor newColor = nvgRGB(0x80, 0x80, 0x80);
+		for (int i = 0; i < 2; i++) {
+			for (; newColorIndex < colorWidget->container->children.size(); newColorIndex++) {
+				auto vi = colorWidget->container->children.begin();
+				std::advance(vi, newColorIndex);
+				WMWireButton *wb = dynamic_cast<WMWireButton *>(*vi);
+				if (wb->wmc->selected) {
+					wire->color = wb->color;
+					newColorIndex++;
+					return;
+				}
+			}
+			newColorIndex = 0;
+		}
 		wire->color = newColor;
 	}
 

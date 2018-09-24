@@ -24,6 +24,7 @@ struct RadioButton : ButtonBase {
 	std::string label;
 	int selected = false;
 	void draw (NVGcontext *vg) override {
+		nvgStrokeWidth(vg, 1); 
 		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
 		if (!label.empty()) {
 			nvgFontFaceId(vg, gGuiFont->handle);
@@ -55,6 +56,7 @@ struct CheckButton : ButtonBase {
 			nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
 			nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
 		}
+		nvgStrokeWidth(vg, 1);
 		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
 		if (selected) {
 			nvgBeginPath(vg);
@@ -84,6 +86,7 @@ struct ClickButton : ButtonBase {
 		nvgBeginPath(vg);
 		nvgRect(vg, 0.5, 0.5, box.size.x - 1, box.size.y - 1);
 		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgStrokeWidth(vg, 1);
 		nvgStroke(vg);
 		Component::draw(vg);
 	}
