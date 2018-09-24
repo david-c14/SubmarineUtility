@@ -20,6 +20,89 @@ struct ButtonBase : Component {
 	}
 };
 
+struct RadioButton : ButtonBase {
+	std::string label;
+	int selected = false;
+	void draw (NVGcontext *vg) override {
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		if (!label.empty()) {
+			nvgFontFaceId(vg, gGuiFont->handle);
+			nvgFontSize(vg, 13);
+			nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
+			nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
+		}
+		if (selected) {
+			nvgBeginPath(vg);
+			nvgCircle(vg, box.size.y / 2 + 1, box.size.y / 2, 5);
+			nvgFill(vg);
+		}
+		nvgBeginPath(vg);
+		nvgCircle(vg, box.size.y / 2 + 1, box.size.y / 2, 8);
+		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgStroke(vg);
+		Component::draw(vg);
+	}
+};
+
+struct CheckButton : ButtonBase {
+	std::string label;
+	int selected = false;
+	void draw (NVGcontext *vg) override {
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		if (!label.empty()) {
+			nvgFontFaceId(vg, gGuiFont->handle);
+			nvgFontSize(vg, 13);
+			nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
+			nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
+		}
+		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		if (selected) {
+			nvgBeginPath(vg);
+			nvgMoveTo(vg, box.size.y / 2 - 4, box.size.y / 2 - 5);
+			nvgLineTo(vg, box.size.y / 2 + 6, box.size.y / 2 + 5);
+			nvgMoveTo(vg, box.size.y / 2 - 4, box.size.y / 2 + 5);
+			nvgLineTo(vg, box.size.y / 2 + 6, box.size.y / 2 - 5);
+			nvgStroke(vg);
+		}
+		nvgBeginPath(vg);
+		nvgRect(vg, box.size.y / 2 - 7, box.size.y / 2 - 8, 16, 16);
+		nvgStroke(vg);
+		Component::draw(vg);
+	}
+};
+
+struct ClickButton : ButtonBase {
+	std::string label;
+	void draw (NVGcontext *vg) override {
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		if (!label.empty()) {
+			nvgFontFaceId(vg, gGuiFont->handle);
+			nvgFontSize(vg, 13);
+			nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
+			nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
+		}
+		nvgBeginPath(vg);
+		nvgRect(vg, 0.5, 0.5, box.size.x - 1, box.size.y - 1);
+		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgStroke(vg);
+		Component::draw(vg);
+	}
+};
+
+struct Label : TransparentWidget {
+	std::string label;
+	void draw (NVGcontext *vg) override {
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		if (!label.empty()) {
+			nvgFontFaceId(vg, gGuiFont->handle);
+			nvgFontSize(vg, 13);
+			nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
+			nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
+		}
+		TransparentWidget::draw(vg);
+	}
+};
+
 struct SubLogo : SVGWidget{};
 
 struct ModuleDragHandle;

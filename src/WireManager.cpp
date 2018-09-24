@@ -36,51 +36,28 @@ struct WMOptionIcon : WMIconWidget {
 	void onAction(EventAction &e) override;
 };
 
-struct WMRadioButton : SubControls::ButtonBase {
-	std::string label;
-	int selected = false;
+struct WMHighlightButton : SubControls::RadioButton {
 	WireManagerWidget *wmw;
-	void draw (NVGcontext *vg) override {
-		nvgFontFaceId(vg, gGuiFont->handle);
-		nvgFontSize(vg, 13);
-	// Draw primary text
-		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
-		nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
-		nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
-		if (selected) {
-			nvgBeginPath(vg);
-			nvgCircle(vg, box.size.y / 2 + 1, box.size.y / 2, 5);
-			nvgFill(vg);
-		}
-		nvgBeginPath(vg);
-		nvgCircle(vg, box.size.y / 2 + 1, box.size.y / 2, 8);
-		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
-		nvgStroke(vg);
-		Component::draw(vg);
-	}
-};
-
-struct HighlightOffButton : WMRadioButton {
-	void onAction(EventAction &e) override;	
-};
-
-struct HighlightLowButton : WMRadioButton {
-	void onAction(EventAction &e) override;	
-};
-
-struct HighlightOnButton : WMRadioButton {
+	int status;
 	void onAction(EventAction &e) override;	
 };
 
 struct WireManagerWidget : SubControls::SizeableModuleWidget {
+
+	enum {
+		HIGHLIGHT_OFF,
+		HIGHLIGHT_LOW,
+		HIGHLIGHT_ON
+	};
+
 	WMColorIcon *colorIcon;
 	WMOptionIcon *optionIcon;
 	WMMinimizeIcon *minimizeIcon;
 	ScrollWidget *colorWidget;
 	Widget *optionWidget;
-	HighlightOffButton *highlightOff;
-	HighlightLowButton *highlightLow;
-	HighlightOnButton *highlightOn;
+	WMHighlightButton *highlightOff;
+	WMHighlightButton *highlightLow;
+	WMHighlightButton *highlightOn;
 	
 	int wireCount = 0;
 	Widget *lastWire = NULL;
@@ -114,32 +91,37 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		optionWidget->visible = false;
 		backPanel->addChild(optionWidget);
 
-debug("1");
-		highlightOff = Widget::create<HighlightOffButton>(Vec(5, 5));
+		SubControls::Label *label = Widget::create<SubControls::Label>(Vec(10, 5));
+		label->label = "Highlighting";
+		label->box.size.x = box.size.x - 10;
+		label->box.size.y = 19;
+		optionWidget->addChild(label);
+
+		highlightOff = Widget::create<WMHighlightButton>(Vec(10, 25));
 		highlightOff->wmw = this;
+		highlightOff->status = HIGHLIGHT_OFF;
 		highlightOff->box.size.x = box.size.x - 10;
 		highlightOff->box.size.y = 19;
 		highlightOff->selected = true;
-		highlightOff->label = "Highlighting Off";
+		highlightOff->label = "Off";
 		optionWidget->addChild(highlightOff);
 	
-debug("2");
-		highlightLow = Widget::create<HighlightLowButton>(Vec(5, 25));
+		highlightLow = Widget::create<WMHighlightButton>(Vec(10, 45));
 		highlightLow->wmw = this;
+		highlightLow->status = HIGHLIGHT_LOW;
 		highlightLow->box.size.x = box.size.x - 10;
 		highlightLow->box.size.y = 19;
-		highlightLow->label = "Lowlighting On";
+		highlightLow->label = "When hovering";
 		optionWidget->addChild(highlightLow);
 	
-debug("3");
-		highlightOn = Widget::create<HighlightOnButton>(Vec(5, 45));
+		highlightOn = Widget::create<WMHighlightButton>(Vec(10, 65));
 		highlightOn->wmw = this;
+		highlightOn->status = HIGHLIGHT_ON;
 		highlightOn->box.size.x = box.size.x - 10;
 		highlightOn->box.size.y = 19;
-		highlightOn->label = "Highlighting On";
+		highlightOn->label = "Always On";
 		optionWidget->addChild(highlightOn);
 	
-debug("4");
 		wireCount = gRackWidget->wireContainer->children.size();
 		if (wireCount)
 			lastWire = gRackWidget->wireContainer->children.back();
@@ -181,32 +163,36 @@ debug("4");
 			else
 				lastWire = NULL;
 		}
+		if (highlight)
+			highlightWires();
+	}
+	void highlightWires() {
+		ModuleWidget *focusedModuleWidget = nullptr;
 		if (highlight) {
-			ModuleWidget *focusedModuleWidget = nullptr;
 			if (gHoveredWidget) {
 				focusedModuleWidget = dynamic_cast<ModuleWidget *>(gHoveredWidget);
 				if (!focusedModuleWidget)
 					focusedModuleWidget = gHoveredWidget->getAncestorOfType<ModuleWidget>();
 			}
-			for (Widget *widget : gRackWidget->wireContainer->children) {
-				WireWidget *wire = dynamic_cast<WireWidget *>(widget);
-				if (focusedModuleWidget) {
-					if (wire->outputPort && wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
-						wire->color = nvgTransRGBA(wire->color, 0xFF);
-					}
-					else if (wire->inputPort && wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
-						wire->color = nvgTransRGBA(wire->color, 0xFF);
-					}
-					else {
-						wire->color = nvgTransRGBA(wire->color, 0x10);
-					}
+		}
+		for (Widget *widget : gRackWidget->wireContainer->children) {
+			WireWidget *wire = dynamic_cast<WireWidget *>(widget);
+			if (focusedModuleWidget) {
+				if (wire->outputPort && wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+					wire->color = nvgTransRGBA(wire->color, 0xFF);
+				}
+				else if (wire->inputPort && wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+					wire->color = nvgTransRGBA(wire->color, 0xFF);
 				}
 				else {
-					if (highlight == 2)
-						wire->color = nvgTransRGBA(wire->color, 0x10);
-					else
-						wire->color = nvgTransRGBA(wire->color, 0xFF);
+					wire->color = nvgTransRGBA(wire->color, 0x10);
 				}
+			}
+			else {
+				if (highlight == 2)
+					wire->color = nvgTransRGBA(wire->color, 0x10);
+				else
+					wire->color = nvgTransRGBA(wire->color, 0xFF);
 			}
 		}
 		ModuleWidget::step();
@@ -222,27 +208,25 @@ debug("4");
 		optionWidget->visible = true;
 	}
 
-	void HighlightOff() {
-		highlightOn->selected = false;
-		highlightOff->selected = true;
-		highlightLow->selected = false;		
-		highlight = 0;
+	void SetHighlight(int status) {
+		highlightOff->selected = (highlightOff->status == status);
+		highlightLow->selected = (highlightLow->status == status);
+		highlightOn->selected = (highlightOn->status == status);
+		highlight = status;
+		highlightWires();
 	}
 
-	void HighlightLow() {
-		highlightOn->selected = false;
-		highlightOff->selected = false;
-		highlightLow->selected = true;
-		highlight = 1;
-	}
+	void SaveSettings() {
+		json_t *settings;
 
-	void HighlightOn() {
-		highlightOn->selected = true;
-		highlightOff->selected = false;
-		highlightLow->selected = false;
-		highlight = 2;
+		std::string settingsFilename = assetLocal("SubmarineUtility.json");
+		FILE *file = fopen(settingsFilename.c_str(), "w");
+		if (file) {
+			json_dumpf(settings, file, JSON_INDENT(2) | JSON_REAL_PRECISION(9));
+			fclose(file);
+		}
+		json_decref(settings);
 	}
-
 };
 
 // Icon onAction
@@ -259,16 +243,8 @@ void WMColorIcon::onAction(EventAction &e) {
 	wmw->Colors();
 }
 
-void HighlightOffButton::onAction(EventAction &e) {
-	wmw->HighlightOff();
-}
-
-void HighlightLowButton::onAction(EventAction &e) {
-	wmw->HighlightLow();
-}
-
-void HighlightOnButton::onAction(EventAction &e) {
-	wmw->HighlightOn();
+void WMHighlightButton::onAction(EventAction &e) {
+	wmw->SetHighlight(status);
 }
 
 Model *modelWireManager = Model::create<Module, WireManagerWidget>("Submarine (Utilities)", "WireManager", "Wire Manager", UTILITY_TAG);
