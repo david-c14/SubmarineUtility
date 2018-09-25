@@ -198,23 +198,27 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	void onResize() override {
 	} 
 
-	void colorWire(Widget *widget) {
-		WireWidget *wire = dynamic_cast<WireWidget *>(widget);
-		NVGcolor newColor = nvgRGB(0x80, 0x80, 0x80);
+	NVGcolor findColor() {
+		auto vi = colorWidget->container->children.begin();
+		std::advance(vi, newColorIndex);
 		for (int i = 0; i < 2; i++) {
-			for (; newColorIndex < colorWidget->container->children.size(); newColorIndex++) {
-				auto vi = colorWidget->container->children.begin();
-				std::advance(vi, newColorIndex);
+			while(newColorIndex < colorWidget->container->children.size()) {
+				newColorIndex++;
 				WMWireButton *wb = dynamic_cast<WMWireButton *>(*vi);
 				if (wb->wmc->selected) {
-					wire->color = wb->color;
-					newColorIndex++;
-					return;
+					return wb->color;
 				}
+				std::advance(vi, 1);	
 			}
 			newColorIndex = 0;
+			vi = colorWidget->container->children.begin();
 		}
-		wire->color = newColor;
+		return nvgRGB(0x80, 0x80, 0x80);
+	}
+
+	void colorWire(Widget *widget) {
+		WireWidget *wire = dynamic_cast<WireWidget *>(widget);
+		wire->color = findColor();
 	}
 
 	void step() override {
@@ -257,10 +261,13 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		for (Widget *widget : gRackWidget->wireContainer->children) {
 			WireWidget *wire = dynamic_cast<WireWidget *>(widget);
 			if (focusedModuleWidget) {
-				if (wire->outputPort && wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+				if (!wire->outputPort || !wire->inputPort) {
 					wire->color = nvgTransRGBA(wire->color, 0xFF);
 				}
-				else if (wire->inputPort && wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+				else if (wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+					wire->color = nvgTransRGBA(wire->color, 0xFF);
+				}
+				else if (wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
 					wire->color = nvgTransRGBA(wire->color, 0xFF);
 				}
 				else {
