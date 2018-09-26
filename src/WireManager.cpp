@@ -56,12 +56,43 @@ struct WMWireButton : SubControls::ButtonBase {
 		addChild(wmc);
 	}
 	void draw(NVGcontext *vg) override {
+		/*
 		nvgBeginPath(vg);
 		nvgStrokeColor(vg, color);
 		nvgStrokeWidth(vg, 5);
 		nvgMoveTo(vg, 23, box.size.y / 2);
 		nvgLineTo(vg, box.size.x, box.size.y / 2);	
 		nvgStroke(vg);
+		*/
+		NVGcolor colorOutline = nvgLerpRGBA(color, nvgRGBf(0.0, 0.0, 0.0), 0.5);
+
+		nvgBeginPath(vg);
+		nvgMoveTo(vg, 32, box.size.y / 2);
+		nvgLineTo(vg, box.size.x, box.size.y / 2);
+		nvgStrokeColor(vg, colorOutline);
+		nvgStrokeWidth(vg, 5);
+		nvgStroke(vg);
+
+		nvgStrokeColor(vg, color);
+		nvgStrokeWidth(vg, 3);
+		nvgStroke(vg);
+
+		nvgBeginPath(vg);
+		nvgCircle(vg, 32, box.size.y / 2, 9);
+		nvgFillColor(vg, color);
+		nvgFill(vg);
+
+		nvgStrokeWidth(vg, 1.0);
+		nvgStrokeColor(vg, colorOutline);
+		nvgStroke(vg);
+	
+		nvgBeginPath(vg);
+		nvgCircle(vg, 32, box.size.y / 2, 5);
+		nvgFillColor(vg, nvgRGBf(0.0, 0.0, 0.0));
+		nvgFill(vg);
+
+		
+
 		SubControls::ButtonBase::draw(vg);
 	}
 };
@@ -97,12 +128,12 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 		colorIcon = Widget::create<WMColorIcon>(Vec(2, 2));
 		colorIcon->wmw = this;
-		colorIcon->setSVG(SVG::load(assetPlugin(plugin, "res/min.svg")));
+		colorIcon->setSVG(SVG::load(assetPlugin(plugin, "res/colors.svg")));
 		backPanel->addChild(colorIcon);
 
 		optionIcon = Widget::create<WMOptionIcon>(Vec(34, 2));
 		optionIcon->wmw = this;
-		optionIcon->setSVG(SVG::load(assetPlugin(plugin, "res/min.svg")));
+		optionIcon->setSVG(SVG::load(assetPlugin(plugin, "res/hls.svg")));
 		backPanel->addChild(optionIcon);
 	
 		minimizeIcon = Widget::create<WMMinimizeIcon>(Vec(66, 2));
