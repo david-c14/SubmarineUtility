@@ -132,6 +132,8 @@ struct MaximizeButton : ButtonBase {
 
 struct SizeableModuleWidget : ModuleWidget {
 	float moduleWidth = 300.0f;
+	float minimumWidth = 185.0f;
+	unsigned int sizeable = true;
 	unsigned int stabilized = false;
 	ModuleDragHandle *handle;
 	BackPanel *backPanel;

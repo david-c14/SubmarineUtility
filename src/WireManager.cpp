@@ -125,6 +125,11 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 	WireManagerWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
 		moduleName = "Wire Manager";
+		moduleWidth = 150;
+		minimumWidth = 150;
+		sizeable = false;
+		box.size.x = moduleWidth;
+		Resize();
 
 		colorIcon = Widget::create<WMColorIcon>(Vec(2, 2));
 		colorIcon->wmw = this;

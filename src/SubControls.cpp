@@ -172,6 +172,7 @@ void SizeableModuleWidget::Resize() {
 	backPanel->box.size.x = box.size.x - 20;
 	handle->box.pos.x = box.size.x - 10;
 	maximizeLogo->box.pos.x = box.size.x - 20;
+	handle->visible = sizeable;
 	onResize();
 }
 
@@ -265,7 +266,7 @@ void SizeableModuleWidget::Minimize(unsigned int minimize) {
 		maximizeButton->visible = false;
 		maximizeLogo->visible = true;
 		minimizeLogo->visible = false;
-		handle->visible = true;
+		handle->visible = sizeable;
 		Resize();
 	}
 }
@@ -300,9 +301,8 @@ void ModuleDragHandle::onDragMove(EventDragMove &e) {
 	float deltaX = newDragX - dragX;
 
 	Rect newBox = originalBox;
-	const float minWidth = 13 * RACK_GRID_WIDTH;
 	newBox.size.x += deltaX;
-	newBox.size.x = fmaxf(newBox.size.x, minWidth);
+	newBox.size.x = fmaxf(newBox.size.x, smw->minimumWidth);
 	newBox.size.x = roundf(newBox.size.x / RACK_GRID_WIDTH) * RACK_GRID_WIDTH;
 	gRackWidget->requestModuleBox(smw, newBox);
 	smw->moduleWidth = smw->box.size.x;
