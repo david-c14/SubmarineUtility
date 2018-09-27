@@ -150,7 +150,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		colorWidget->box.size.x = box.size.x - 20;
 		colorWidget->box.size.y = box.size.y - 65;
 		backPanel->addChild(colorWidget);
-
+/*
 		float y = 0;
 		WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
 		wb->box.size.x = colorWidget->box.size.x;
@@ -186,7 +186,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		y += 21;
 		wb->color = nvgRGB(0xff, 0xae, 0xc9);
 		colorWidget->container->addChild(wb);
-
+*/
 		optionWidget = Widget::create<Widget>(Vec(0, 35));
 		optionWidget->box.size.x = box.size.x - 20;
 		optionWidget->box.size.y = box.size.y - 65;
@@ -224,6 +224,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightOn->label = "Always On";
 		optionWidget->addChild(highlightOn);
 	
+		LoadSettings();
 		wireCount = gRackWidget->wireContainer->children.size();
 		if (wireCount)
 			lastWire = gRackWidget->wireContainer->children.back();
@@ -364,6 +365,48 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 			fclose(file);
 		}
 		json_decref(settings);
+	}
+	void LoadSettings() {
+		unsigned int y = 0;
+		json_error_t error;
+		FILE *file = fopen(assetLocal("SubmarineUtility/WireManager.json").c_str(), "r");
+		if (!file) {
+			return;
+		}
+		json_t *rootJ = json_loadf(file, 0, &error);
+		fclose(file);
+		if (!rootJ) {
+			std::string message = stringf("Submarine Utilities Wire Manager: JSON parsing error at %s %d:%d %s", error.source, error.line, error.column, error.text);
+			warn(message.c_str());
+			return;
+		}
+		json_t *arr = json_object_get(rootJ, "colors");
+		if (arr) {
+			int size = json_array_size(arr);
+			for (int i = 0; i < size; i++) {
+				json_t *j1 = json_array_get(arr, i);
+				if (j1) {
+					json_t *c1 = json_object_get(j1, "color");					if (c1) {
+						WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
+						wb->box.size.x = colorWidget->box.size.x;
+						wb->box.size.y = 21;
+						y += 21;
+						wb->color = colorFromHexString(json_string_value(c1));;
+						colorWidget->container->addChild(wb);
+						json_t *s1 = json_object_get(j1, "selected");	
+						if (s1) {
+							wb->wmc->selected = json_number_value(s1);
+						}
+					}	
+				}
+			}
+		}
+		json_t *h1 = json_object_get(rootJ, "selected");
+		if (h1) {
+			highlight = json_number_value(h1);
+			SetHighlight(highlight);
+		}
+
 	}
 };
 
