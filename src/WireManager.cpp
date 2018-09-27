@@ -337,11 +337,27 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlight = status;
 		highlightWires();
 	}
+	json_t *toJson() override {
+		SaveSettings();
+		return SubControls::SizeableModuleWidget::toJson();
+	}
 
 	void SaveSettings() {
-		json_t *settings;
+		json_t *settings = json_object();
+		json_t *arr = json_array();
+		for (Widget *child : colorWidget->container->children) {
+			WMWireButton *wb = dynamic_cast<WMWireButton *>(child);
+			json_t *color = json_object();
+			std::string s = colorToHexString(wb->color);	
+			json_object_set_new(color, "color", json_string(s.c_str()));
+			json_object_set_new(color, "selected", json_real(wb->wmc->selected));
+			json_array_append_new(arr, color);
+		}
+		json_object_set_new(settings, "colors", arr);
+		json_object_set_new(settings, "highlight", json_real(highlight));
 
-		std::string settingsFilename = assetLocal("SubmarineUtility.json");
+		systemCreateDirectory(assetLocal("SubmarineUtility"));
+		std::string settingsFilename = assetLocal("SubmarineUtility/WireManager.json");
 		FILE *file = fopen(settingsFilename.c_str(), "w");
 		if (file) {
 			json_dumpf(settings, file, JSON_INDENT(2) | JSON_REAL_PRECISION(9));
