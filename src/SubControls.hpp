@@ -154,7 +154,7 @@ struct SizeableModuleWidget : ModuleWidget {
 	virtual void onResize() { }; 
 };
 
-struct ModuleDragHandle : Widget {
+struct ModuleDragHandle : VirtualWidget {
 	SizeableModuleWidget *smw;
 	float dragX;
 	Rect originalBox;

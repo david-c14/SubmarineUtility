@@ -46,7 +46,7 @@ struct WMWireCheck : SubControls::CheckButton {
 	void onAction(EventAction &e) override;
 };
 
-struct WMWireButton : SubControls::ButtonBase {
+struct WMWireButton : VirtualWidget {
 	NVGcolor color;
 	WMWireCheck *wmc;
 	WMWireButton() {
@@ -83,7 +83,7 @@ struct WMWireButton : SubControls::ButtonBase {
 		nvgFillColor(vg, nvgRGBf(0.0, 0.0, 0.0));
 		nvgFill(vg);
 
-		SubControls::ButtonBase::draw(vg);
+		Widget::draw(vg);
 	}
 };
 
@@ -96,7 +96,7 @@ struct WMCheckAll : SubControls::CheckButton {
 	void onAction(EventAction &e) override;
 };
 
-struct WMManageButton : Widget {
+struct WMManageButton : VirtualWidget {
 	WMCheckAll *wmc;
 	WMManageButton() {
 		wmc = Widget::create<WMCheckAll>(Vec(1,1));
