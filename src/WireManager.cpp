@@ -119,6 +119,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	WMHighlightButton *highlightOff;
 	WMHighlightButton *highlightLow;
 	WMHighlightButton *highlightOn;
+	SubControls::Slider *slider;
 	
 	int wireCount = 0;
 	Widget *lastWire = NULL;
@@ -174,7 +175,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightOff = Widget::create<WMHighlightButton>(Vec(10, 25));
 		highlightOff->wmw = this;
 		highlightOff->status = HIGHLIGHT_OFF;
-		highlightOff->box.size.x = box.size.x - 10;
+		highlightOff->box.size.x = box.size.x - 40;
 		highlightOff->box.size.y = 19;
 		highlightOff->selected = true;
 		highlightOff->label = "Off";
@@ -183,7 +184,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightLow = Widget::create<WMHighlightButton>(Vec(10, 45));
 		highlightLow->wmw = this;
 		highlightLow->status = HIGHLIGHT_LOW;
-		highlightLow->box.size.x = box.size.x - 10;
+		highlightLow->box.size.x = box.size.x - 40;
 		highlightLow->box.size.y = 19;
 		highlightLow->label = "When hovering";
 		optionWidget->addChild(highlightLow);
@@ -191,10 +192,18 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightOn = Widget::create<WMHighlightButton>(Vec(10, 65));
 		highlightOn->wmw = this;
 		highlightOn->status = HIGHLIGHT_ON;
-		highlightOn->box.size.x = box.size.x - 10;
+		highlightOn->box.size.x = box.size.x - 40;
 		highlightOn->box.size.y = 19;
 		highlightOn->label = "Always On";
 		optionWidget->addChild(highlightOn);
+	
+		slider = Widget::create<SubControls::Slider>(Vec(10, 85));
+		slider->box.size.x = box.size.x - 40;
+		slider->box.size.y = 21;
+		slider->minValue = 0;
+		slider->maxValue = 1;
+		slider->value = 0.1;
+		optionWidget->addChild(slider);
 
 		LoadSettings();
 
@@ -299,12 +308,12 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 					wire->color = nvgTransRGBA(wire->color, 0xFF);
 				}
 				else {
-					wire->color = nvgTransRGBA(wire->color, 0x10);
+					wire->color = nvgTransRGBAf(wire->color, slider->value);
 				}
 			}
 			else {
 				if (highlight == 2)
-					wire->color = nvgTransRGBA(wire->color, 0x10);
+					wire->color = nvgTransRGBAf(wire->color, slider->value);
 				else
 					wire->color = nvgTransRGBA(wire->color, 0xFF);
 			}
@@ -345,6 +354,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		}
 		json_object_set_new(settings, "colors", arr);
 		json_object_set_new(settings, "highlight", json_real(highlight));
+		json_object_set_new(settings, "highlight_trans", json_real(slider->value));
 
 		systemCreateDirectory(assetLocal("SubmarineUtility"));
 		std::string settingsFilename = assetLocal("SubmarineUtility/WireManager.json");
@@ -391,6 +401,10 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		if (h1) {
 			highlight = json_number_value(h1);
 			SetHighlight(highlight);
+		}
+		json_t *t1 = json_object_get(rootJ, "highlight_trans");
+		if (t1) {
+			slider->value = json_number_value(t1);
 		}
 		json_decref(rootJ);
 	}
