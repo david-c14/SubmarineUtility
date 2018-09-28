@@ -43,6 +43,7 @@ struct WMHighlightButton : SubControls::RadioButton {
 };
 
 struct WMWireCheck : SubControls::CheckButton {
+	WireManagerWidget *wmw;
 	void onAction(EventAction &e) override;
 };
 
@@ -86,10 +87,6 @@ struct WMWireButton : VirtualWidget {
 		Widget::draw(vg);
 	}
 };
-
-void WMWireCheck::onAction(EventAction &e) {
-	selected = !selected;
-}
 
 struct WMCheckAll : SubControls::CheckButton {
 	WireManagerWidget *wmw;
@@ -214,8 +211,9 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
 		wb->box.size.x = colorWidget->box.size.x;
 		wb->box.size.y = 21;
-		wb->color = nvgRGB(0x09, 0x86, 0xad);
+		wb->color = color;
 		wb->wmc->selected = selected;
+		wb->wmc->wmw = this;
 		colorWidget->container->addChild(wb);
 	}
 
@@ -331,10 +329,6 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlight = status;
 		highlightWires();
 	}
-	json_t *toJson() override {
-		SaveSettings();
-		return SubControls::SizeableModuleWidget::toJson();
-	}
 
 	void SaveSettings() {
 		json_t *settings = json_object();
@@ -362,7 +356,6 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		json_decref(settings);
 	}
 	void LoadSettings() {
-		unsigned int y = 21;
 		json_error_t error;
 		FILE *file = fopen(assetLocal("SubmarineUtility/WireManager.json").c_str(), "r");
 		if (!file) {
@@ -384,16 +377,12 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 				if (j1) {
 					json_t *c1 = json_object_get(j1, "color");
 					if (c1) {
-						WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
-						wb->box.size.x = colorWidget->box.size.x;
-						wb->box.size.y = 21;
-						y += 21;
-						wb->color = colorFromHexString(json_string_value(c1));;
-						colorWidget->container->addChild(wb);
+						int selected = false;
 						json_t *s1 = json_object_get(j1, "selected");	
 						if (s1) {
-							wb->wmc->selected = json_number_value(s1);
+							selected = json_number_value(s1);
 						}
+						AddColor(colorFromHexString(json_string_value(c1)), selected);
 					}	
 				}
 			}
@@ -407,6 +396,11 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	}
 };
 
+void WMWireCheck::onAction(EventAction &e) {
+	selected = !selected;
+	wmw->SaveSettings();
+}
+
 void WMCheckAll::onAction(EventAction &e) {
 	selected = !selected;
 	auto __begin = std::begin(wmw->colorWidget->container->children);
@@ -415,6 +409,7 @@ void WMCheckAll::onAction(EventAction &e) {
 		WMWireButton *wb = dynamic_cast<WMWireButton *>(*__begin);
 		wb->wmc->selected = selected;
 	}
+	wmw->SaveSettings();
 }
 
 // Icon onAction
@@ -433,6 +428,7 @@ void WMColorIcon::onAction(EventAction &e) {
 
 void WMHighlightButton::onAction(EventAction &e) {
 	wmw->SetHighlight(status);
+	wmw->SaveSettings();
 }
 
 Model *modelWireManager = Model::create<Module, WireManagerWidget>("Submarine (Utilities)", "WireManager", "Wire Manager", UTILITY_TAG);
