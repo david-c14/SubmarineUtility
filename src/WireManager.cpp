@@ -56,14 +56,6 @@ struct WMWireButton : SubControls::ButtonBase {
 		addChild(wmc);
 	}
 	void draw(NVGcontext *vg) override {
-		/*
-		nvgBeginPath(vg);
-		nvgStrokeColor(vg, color);
-		nvgStrokeWidth(vg, 5);
-		nvgMoveTo(vg, 23, box.size.y / 2);
-		nvgLineTo(vg, box.size.x, box.size.y / 2);	
-		nvgStroke(vg);
-		*/
 		NVGcolor colorOutline = nvgLerpRGBA(color, nvgRGBf(0.0, 0.0, 0.0), 0.5);
 
 		nvgBeginPath(vg);
@@ -91,8 +83,6 @@ struct WMWireButton : SubControls::ButtonBase {
 		nvgFillColor(vg, nvgRGBf(0.0, 0.0, 0.0));
 		nvgFill(vg);
 
-		
-
 		SubControls::ButtonBase::draw(vg);
 	}
 };
@@ -100,6 +90,21 @@ struct WMWireButton : SubControls::ButtonBase {
 void WMWireCheck::onAction(EventAction &e) {
 	selected = !selected;
 }
+
+struct WMCheckAll : SubControls::CheckButton {
+	WireManagerWidget *wmw;
+	void onAction(EventAction &e) override;
+};
+
+struct WMManageButton : Widget {
+	WMCheckAll *wmc;
+	WMManageButton() {
+		wmc = Widget::create<WMCheckAll>(Vec(1,1));
+		wmc->box.size.x = 19;
+		wmc->box.size.y = 19;
+		addChild(wmc);
+	}
+}; 
 
 struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
@@ -121,7 +126,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	int wireCount = 0;
 	Widget *lastWire = NULL;
 	int highlight = 0;
-	unsigned int newColorIndex = 0;
+	unsigned int newColorIndex = 1;
 
 	WireManagerWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
 		moduleName = "Wire Manager";
@@ -150,43 +155,13 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		colorWidget->box.size.x = box.size.x - 20;
 		colorWidget->box.size.y = box.size.y - 65;
 		backPanel->addChild(colorWidget);
-/*
-		float y = 0;
-		WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
+
+		WMManageButton *wb = Widget::create<WMManageButton>(Vec(0, 0));
+		wb->wmc->wmw = this;
 		wb->box.size.x = colorWidget->box.size.x;
 		wb->box.size.y = 21;
-		y += 21;
-		wb->color = nvgRGB(0xc9, 0xb7, 0x0e);
 		colorWidget->container->addChild(wb);
 
-		wb = Widget::create<WMWireButton>(Vec(0, y));
-		wb->box.size.x = colorWidget->box.size.x;
-		wb->box.size.y = 21;
-		y += 21;
-		wb->color = nvgRGB(0xc9, 0x18, 0x47);
-		colorWidget->container->addChild(wb);
-
-		wb = Widget::create<WMWireButton>(Vec(0, y));
-		wb->box.size.x = colorWidget->box.size.x;
-		wb->box.size.y = 21;
-		y += 21;
-		wb->color = nvgRGB(0x0c, 0x8e, 0x15);
-		colorWidget->container->addChild(wb);
-
-		wb = Widget::create<WMWireButton>(Vec(0, y));
-		wb->box.size.x = colorWidget->box.size.x;
-		wb->box.size.y = 21;
-		y += 21;
-		wb->color = nvgRGB(0x09, 0x86, 0xad);
-		colorWidget->container->addChild(wb);
-
-		wb = Widget::create<WMWireButton>(Vec(0, y));
-		wb->box.size.x = colorWidget->box.size.x;
-		wb->box.size.y = 21;
-		y += 21;
-		wb->color = nvgRGB(0xff, 0xae, 0xc9);
-		colorWidget->container->addChild(wb);
-*/
 		optionWidget = Widget::create<Widget>(Vec(0, 35));
 		optionWidget->box.size.x = box.size.x - 20;
 		optionWidget->box.size.y = box.size.y - 65;
@@ -223,17 +198,34 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightOn->box.size.y = 19;
 		highlightOn->label = "Always On";
 		optionWidget->addChild(highlightOn);
-	
+
 		LoadSettings();
+
 		wireCount = gRackWidget->wireContainer->children.size();
 		if (wireCount)
 			lastWire = gRackWidget->wireContainer->children.back();
 	}
+
 	void ResetIcons() {
 	}
 
-	void onResize() override {
-	} 
+	void AddColor(NVGcolor color, int selected) {
+		float y = colorWidget->container->children.size() * 21.0;
+		WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
+		wb->box.size.x = colorWidget->box.size.x;
+		wb->box.size.y = 21;
+		wb->color = nvgRGB(0x09, 0x86, 0xad);
+		wb->wmc->selected = selected;
+		colorWidget->container->addChild(wb);
+	}
+
+	void SetDefaults() {
+		AddColor(nvgRGB(0xc9, 0xb7, 0x0e), true);
+		AddColor(nvgRGB(0xc9, 0x18, 0x47), true);
+		AddColor(nvgRGB(0x0c, 0x8e, 0x15), true);
+		AddColor(nvgRGB(0x09, 0x86, 0xad), true);
+		AddColor(nvgRGB(0xff, 0xae, 0xc9), false);
+	}
 
 	NVGcolor findColor() {
 		auto vi = colorWidget->container->children.begin();
@@ -247,8 +239,9 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 				}
 				std::advance(vi, 1);	
 			}
-			newColorIndex = 0;
+			newColorIndex = 1;
 			vi = colorWidget->container->children.begin();
+			std::advance(vi, newColorIndex);
 		}
 		return nvgRGB(0x80, 0x80, 0x80);
 	}
@@ -346,8 +339,10 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	void SaveSettings() {
 		json_t *settings = json_object();
 		json_t *arr = json_array();
-		for (Widget *child : colorWidget->container->children) {
-			WMWireButton *wb = dynamic_cast<WMWireButton *>(child);
+		auto __begin = std::begin(colorWidget->container->children);
+		auto __end = std::end(colorWidget->container->children);
+		for (++__begin; __begin != __end; ++__begin) {
+			WMWireButton *wb = dynamic_cast<WMWireButton *>(*__begin);
 			json_t *color = json_object();
 			std::string s = colorToHexString(wb->color);	
 			json_object_set_new(color, "color", json_string(s.c_str()));
@@ -367,10 +362,11 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		json_decref(settings);
 	}
 	void LoadSettings() {
-		unsigned int y = 0;
+		unsigned int y = 21;
 		json_error_t error;
 		FILE *file = fopen(assetLocal("SubmarineUtility/WireManager.json").c_str(), "r");
 		if (!file) {
+			SetDefaults();
 			return;
 		}
 		json_t *rootJ = json_loadf(file, 0, &error);
@@ -386,7 +382,8 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 			for (int i = 0; i < size; i++) {
 				json_t *j1 = json_array_get(arr, i);
 				if (j1) {
-					json_t *c1 = json_object_get(j1, "color");					if (c1) {
+					json_t *c1 = json_object_get(j1, "color");
+					if (c1) {
 						WMWireButton *wb = Widget::create<WMWireButton>(Vec(0, y));
 						wb->box.size.x = colorWidget->box.size.x;
 						wb->box.size.y = 21;
@@ -401,14 +398,24 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 				}
 			}
 		}
-		json_t *h1 = json_object_get(rootJ, "selected");
+		json_t *h1 = json_object_get(rootJ, "highlight");
 		if (h1) {
 			highlight = json_number_value(h1);
 			SetHighlight(highlight);
 		}
-
+		json_decref(rootJ);
 	}
 };
+
+void WMCheckAll::onAction(EventAction &e) {
+	selected = !selected;
+	auto __begin = std::begin(wmw->colorWidget->container->children);
+	auto __end = std::end(wmw->colorWidget->container->children);
+	for (++__begin; __begin != __end; ++__begin) {
+		WMWireButton *wb = dynamic_cast<WMWireButton *>(*__begin);
+		wb->wmc->selected = selected;
+	}
+}
 
 // Icon onAction
 
