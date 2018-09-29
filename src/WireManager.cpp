@@ -253,9 +253,41 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		return nvgRGB(0x80, 0x80, 0x80);
 	}
 
+	NVGcolor varyColor(NVGcolor color) {
+		float r = color.r;
+		float g = color.g;
+		float b = color.b;
+		float a = color.a;
+	// convert to hsl
+
+		float Cmax = std::max(r,std::max(g,b));
+		float Cmin = std::min(r,std::min(g,b));
+		float delta = Cmax - Cmin;
+
+		float h = 0;
+		float s = 0;
+		float l = (Cmax + Cmin) / 2;
+
+		if (delta > 0) {
+			s = delta / (1 - std::abs(l * 2  - 1));
+			if (Cmax == r) {
+				h = std::fmod(6 + (g-b)/delta, 6);
+			}
+			else if (Cmax == g) {
+				h = (b-r)/delta + 2;
+			}
+			else {
+				h = (r-g)/delta + 4;
+			}
+		}
+		debug("%f %f %f", h, s, l);
+		return nvgHSLA(h / 6, s, l, a * 255);
+	}
+
 	void colorWire(Widget *widget) {
 		WireWidget *wire = dynamic_cast<WireWidget *>(widget);
 		wire->color = findColor();
+		wire->color = varyColor(wire->color);
 	}
 
 	void step() override {
