@@ -100,7 +100,7 @@ struct Label : TransparentWidget {
 			nvgFontFaceId(vg, gGuiFont->handle);
 			nvgFontSize(vg, 13);
 			nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
-			nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
+			nvgText(vg, 1, box.size.y / 2, label.c_str(), NULL);
 		}
 		TransparentWidget::draw(vg);
 	}

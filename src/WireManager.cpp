@@ -103,6 +103,11 @@ struct WMManageButton : VirtualWidget {
 	}
 }; 
 
+struct WMSlider : SubControls::Slider {
+	WireManagerWidget *wmw;
+	void onAction(EventAction &e) override;
+};
+
 struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 	enum {
@@ -119,7 +124,11 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	WMHighlightButton *highlightOff;
 	WMHighlightButton *highlightLow;
 	WMHighlightButton *highlightOn;
-	SubControls::Slider *slider;
+	WMSlider *highlightSlider;
+	WMWireCheck *varyCheck;
+	WMSlider *varyH;
+	WMSlider *varyS;
+	WMSlider *varyL;
 	
 	int wireCount = 0;
 	Widget *lastWire = NULL;
@@ -166,13 +175,68 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		optionWidget->visible = false;
 		backPanel->addChild(optionWidget);
 
-		SubControls::Label *label = Widget::create<SubControls::Label>(Vec(10, 5));
+		varyCheck = Widget::create<WMWireCheck>(Vec(10, 5));
+		varyCheck->wmw = this;
+		varyCheck->label = "Variation";
+		varyCheck->box.size.x = box.size.x - 40;
+		varyCheck->box.size.y = 19;
+		optionWidget->addChild(varyCheck);
+	
+		SubControls::Label *label = Widget::create<SubControls::Label>(Vec(10, 25));
+		label->label = "H";
+		label->box.size.x = 10;
+		label->box.size.y = 19;
+		optionWidget->addChild(label);
+	
+		label = Widget::create<SubControls::Label>(Vec(10, 45));
+		label->label = "S";
+		label->box.size.x = 10;
+		label->box.size.y = 19;
+		optionWidget->addChild(label);
+	
+		label = Widget::create<SubControls::Label>(Vec(10, 65));
+		label->label = "L";
+		label->box.size.x = 10;
+		label->box.size.y = 19;
+		optionWidget->addChild(label);
+	
+		varyH = Widget::create<WMSlider>(Vec(20, 25));
+		varyH->wmw = this;
+		varyH->box.size.x = box.size.x - 50;
+		varyH->box.size.y = 19;
+		varyH->minValue = 0.0f;
+		varyH->maxValue = 1.0f;
+		varyH->value = 0.1f;
+		varyH->defaultValue = 0.1f;
+		optionWidget->addChild(varyH);
+
+		varyS = Widget::create<WMSlider>(Vec(20, 45));
+		varyS->wmw = this;
+		varyS->box.size.x = box.size.x - 50;
+		varyS->box.size.y = 19;
+		varyS->minValue = 0.0f;
+		varyS->maxValue = 1.0f;
+		varyS->value = 0.1f;
+		varyS->defaultValue = 0.1f;
+		optionWidget->addChild(varyS);
+
+		varyL = Widget::create<WMSlider>(Vec(20, 65));
+		varyL->wmw = this;
+		varyL->box.size.x = box.size.x - 50;
+		varyL->box.size.y = 19;
+		varyL->minValue = 0.0f;
+		varyL->maxValue = 1.0f;
+		varyL->value = 0.1f;
+		varyL->defaultValue = 0.1f;
+		optionWidget->addChild(varyL);
+
+		label = Widget::create<SubControls::Label>(Vec(10, 105));
 		label->label = "Highlighting";
-		label->box.size.x = box.size.x - 10;
+		label->box.size.x = box.size.x - 40;
 		label->box.size.y = 19;
 		optionWidget->addChild(label);
 
-		highlightOff = Widget::create<WMHighlightButton>(Vec(10, 25));
+		highlightOff = Widget::create<WMHighlightButton>(Vec(10, 125));
 		highlightOff->wmw = this;
 		highlightOff->status = HIGHLIGHT_OFF;
 		highlightOff->box.size.x = box.size.x - 40;
@@ -181,7 +245,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightOff->label = "Off";
 		optionWidget->addChild(highlightOff);
 	
-		highlightLow = Widget::create<WMHighlightButton>(Vec(10, 45));
+		highlightLow = Widget::create<WMHighlightButton>(Vec(10, 145));
 		highlightLow->wmw = this;
 		highlightLow->status = HIGHLIGHT_LOW;
 		highlightLow->box.size.x = box.size.x - 40;
@@ -189,7 +253,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightLow->label = "When hovering";
 		optionWidget->addChild(highlightLow);
 	
-		highlightOn = Widget::create<WMHighlightButton>(Vec(10, 65));
+		highlightOn = Widget::create<WMHighlightButton>(Vec(10, 165));
 		highlightOn->wmw = this;
 		highlightOn->status = HIGHLIGHT_ON;
 		highlightOn->box.size.x = box.size.x - 40;
@@ -197,13 +261,15 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightOn->label = "Always On";
 		optionWidget->addChild(highlightOn);
 	
-		slider = Widget::create<SubControls::Slider>(Vec(10, 85));
-		slider->box.size.x = box.size.x - 40;
-		slider->box.size.y = 21;
-		slider->minValue = 0;
-		slider->maxValue = 1;
-		slider->value = 0.1;
-		optionWidget->addChild(slider);
+		highlightSlider = Widget::create<WMSlider>(Vec(10, 185));
+		highlightSlider->wmw = this;
+		highlightSlider->box.size.x = box.size.x - 40;
+		highlightSlider->box.size.y = 21;
+		highlightSlider->minValue = 0;
+		highlightSlider->maxValue = 1;
+		highlightSlider->value = 0.1;
+		highlightSlider->defaultValue = 0.1;
+		optionWidget->addChild(highlightSlider);
 
 		LoadSettings();
 
@@ -280,14 +346,19 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 				h = (r-g)/delta + 4;
 			}
 		}
-		debug("%f %f %f", h, s, l);
-		return nvgHSLA(h / 6, s, l, a * 255);
+		
+		h = std::fmod(1 + h / 6 + (randomUniform() - 0.5f) * varyH->value, 1.0f);
+		s = clamp(s + (randomUniform() - 0.5f) * 2 * varyS->value, 0.0f, 1.0f);
+		l = clamp(l + (randomUniform() - 0.5f) * 2 * varyL->value, 0.0f, 1.0f);
+		return nvgHSLA(h, s, l, a * 255);
 	}
 
 	void colorWire(Widget *widget) {
 		WireWidget *wire = dynamic_cast<WireWidget *>(widget);
 		wire->color = findColor();
-		wire->color = varyColor(wire->color);
+		if (varyCheck->selected) {
+			wire->color = varyColor(wire->color);
+		}
 	}
 
 	void step() override {
@@ -340,12 +411,12 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 					wire->color = nvgTransRGBA(wire->color, 0xFF);
 				}
 				else {
-					wire->color = nvgTransRGBAf(wire->color, slider->value);
+					wire->color = nvgTransRGBAf(wire->color, highlightSlider->value);
 				}
 			}
 			else {
 				if (highlight == 2)
-					wire->color = nvgTransRGBAf(wire->color, slider->value);
+					wire->color = nvgTransRGBAf(wire->color, highlightSlider->value);
 				else
 					wire->color = nvgTransRGBA(wire->color, 0xFF);
 			}
@@ -386,7 +457,11 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		}
 		json_object_set_new(settings, "colors", arr);
 		json_object_set_new(settings, "highlight", json_real(highlight));
-		json_object_set_new(settings, "highlight_trans", json_real(slider->value));
+		json_object_set_new(settings, "highlight_trans", json_real(highlightSlider->value));
+		json_object_set_new(settings, "variation", json_real(varyCheck->selected));
+		json_object_set_new(settings, "variationH", json_real(varyH->value));
+		json_object_set_new(settings, "variationS", json_real(varyS->value));
+		json_object_set_new(settings, "variationL", json_real(varyL->value));
 
 		systemCreateDirectory(assetLocal("SubmarineUtility"));
 		std::string settingsFilename = assetLocal("SubmarineUtility/WireManager.json");
@@ -436,7 +511,23 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		}
 		json_t *t1 = json_object_get(rootJ, "highlight_trans");
 		if (t1) {
-			slider->value = json_number_value(t1);
+			highlightSlider->value = json_number_value(t1);
+		}
+		json_t *v1 = json_object_get(rootJ, "variation");
+		if (v1) {
+			varyCheck->selected = json_number_value(v1);
+		}
+		v1 = json_object_get(rootJ, "variationH");
+		if (v1) {
+			varyH->value = json_number_value(v1);
+		}
+		v1 = json_object_get(rootJ, "variationS");
+		if (v1) {
+			varyS->value = json_number_value(v1);
+		}
+		v1 = json_object_get(rootJ, "variationL");
+		if (v1) {
+			varyL->value = json_number_value(v1);
 		}
 		json_decref(rootJ);
 	}
@@ -455,6 +546,10 @@ void WMCheckAll::onAction(EventAction &e) {
 		WMWireButton *wb = dynamic_cast<WMWireButton *>(*__begin);
 		wb->wmc->selected = selected;
 	}
+	wmw->SaveSettings();
+}
+
+void WMSlider::onAction(EventAction &e) {
 	wmw->SaveSettings();
 }
 
