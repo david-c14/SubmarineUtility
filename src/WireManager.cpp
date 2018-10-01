@@ -346,10 +346,11 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 				h = (r-g)/delta + 4;
 			}
 		}
+	// Modify color
 		
 		h = std::fmod(1 + h / 6 + (randomUniform() - 0.5f) * varyH->value, 1.0f);
-		s = clamp(s + (randomUniform() - 0.5f) * 2 * varyS->value, 0.0f, 1.0f);
-		l = clamp(l + (randomUniform() - 0.5f) * 2 * varyL->value, 0.0f, 1.0f);
+		s = rescale(randomUniform(), 0.0f, 1.0f, std::max(s - varyS->value, 0.0f), std::min(s + varyS->value, 1.0f));
+		l = rescale(randomUniform(), 0.0f, 1.0f, std::max(l - varyL->value, 0.0f), std::min(l + varyL->value, 1.0f));
 		return nvgHSLA(h, s, l, a * 255);
 	}
 
