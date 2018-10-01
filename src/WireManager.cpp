@@ -47,21 +47,23 @@ struct WMWireCheck : SubControls::CheckButton {
 	void onAction(EventAction &e) override;
 };
 
+struct WMWireEdit;
+struct WMWireUp;
+struct WMWireDown;
+
 struct WMWireButton : VirtualWidget {
 	NVGcolor color;
 	WMWireCheck *wmc;
-	WMWireButton() {
-		wmc = Widget::create<WMWireCheck>(Vec(1,1));
-		wmc->box.size.x = 19;
-		wmc->box.size.y = 19;
-		addChild(wmc);
-	}
+	WMWireEdit *wme;
+	WMWireUp *wmu;
+	WMWireDown *wmd;
+	WMWireButton();
 	void draw(NVGcontext *vg) override {
 		NVGcolor colorOutline = nvgLerpRGBA(color, nvgRGBf(0.0, 0.0, 0.0), 0.5);
 
 		nvgBeginPath(vg);
 		nvgMoveTo(vg, 32, box.size.y / 2);
-		nvgLineTo(vg, box.size.x, box.size.y / 2);
+		nvgLineTo(vg, box.size.x - 30, box.size.y / 2);
 		nvgStrokeColor(vg, colorOutline);
 		nvgStrokeWidth(vg, 5);
 		nvgStroke(vg);
@@ -103,6 +105,88 @@ struct WMManageButton : VirtualWidget {
 	}
 }; 
 
+struct WMWireEdit : SubControls::ButtonBase {
+	WMWireButton *wmb;
+	void onAction(EventAction &e) override;
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgFillColor(vg, nvgRGB(0, 0, 0));
+		nvgRect(vg, 0, 0, box.size.x, box.size.y);
+		nvgFill(vg);
+		nvgBeginPath(vg);
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgCircle(vg, box.size.x / 2 - 5, box.size.y / 2, 2);
+		nvgCircle(vg, box.size.x / 2, box.size.y / 2, 2);
+		nvgCircle(vg, box.size.x / 2 + 5, box.size.y / 2, 2);
+		nvgFill(vg);
+		ButtonBase::draw(vg);
+	}
+};
+
+struct WMWireUp : SubControls::ButtonBase {
+	WMWireButton *wmb;
+	void onAction(EventAction &e) override;
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgFillColor(vg, nvgRGB(0, 0, 0));
+		nvgRect(vg, 0, 0, box.size.x, box.size.y);
+		nvgFill(vg);
+		if (wmb->box.pos.y > 22) {
+			nvgBeginPath(vg);
+			nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+			nvgMoveTo(vg, box.size.x / 2, 1);
+			nvgLineTo(vg, box.size.x - 1, box.size.y - 1);
+			nvgLineTo(vg, 1, box.size.y - 1);
+			nvgClosePath(vg);
+			nvgFill(vg);
+		}
+		ButtonBase::draw(vg);
+	}
+};
+
+struct WMWireDown : SubControls::ButtonBase {
+	WMWireButton *wmb;
+	void onAction(EventAction &e) override;
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgFillColor(vg, nvgRGB(0, 0, 0));
+		nvgRect(vg, 0, 0, box.size.x, box.size.y);
+		nvgFill(vg);
+		if ((wmb->box.pos.y / 21) < (wmb->parent->children.size() - 1)) {
+			nvgBeginPath(vg);
+			nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+			nvgMoveTo(vg, box.size.x / 2, box.size.y - 1);
+			nvgLineTo(vg, box.size.x - 1, 1);
+			nvgLineTo(vg, 1, 1);
+			nvgClosePath(vg);
+			nvgFill(vg);
+		}
+		ButtonBase::draw(vg);
+	}
+};
+
+WMWireButton::WMWireButton() {
+	wmc = Widget::create<WMWireCheck>(Vec(1,1));
+	wmc->box.size.x = 19;
+	wmc->box.size.y = 19;
+	addChild(wmc);
+	wme = Widget::create<WMWireEdit>(Vec(105,1));
+	wme->box.size.x = 19;
+	wme->box.size.y = 19;
+	wme->wmb = this; 
+	addChild(wme);
+	wmu = Widget::create<WMWireUp>(Vec(89,1));
+	wmu->box.size.x = 15;
+	wmu->box.size.y = 7;
+	wmu->wmb = this;
+	addChild(wmu);
+	wmd = Widget::create<WMWireDown>(Vec(89,10));
+	wmd->box.size.x = 15;
+	wmd->box.size.y = 7;
+	wmd->wmb = this;
+	addChild(wmd);
+}
+
 struct WMSlider : SubControls::Slider {
 	WireManagerWidget *wmw;
 	void onAction(EventAction &e) override;
@@ -120,7 +204,9 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	WMOptionIcon *optionIcon;
 	WMMinimizeIcon *minimizeIcon;
 	ScrollWidget *colorWidget;
-	Widget *optionWidget;
+	VirtualWidget *optionWidget;
+	VirtualWidget *editWidget;
+	
 	WMHighlightButton *highlightOff;
 	WMHighlightButton *highlightLow;
 	WMHighlightButton *highlightOn;
@@ -134,6 +220,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	Widget *lastWire = NULL;
 	int highlight = 0;
 	unsigned int newColorIndex = 1;
+	WMWireButton *editingColor;
 
 	WireManagerWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
 		moduleName = "Wire Manager";
@@ -169,7 +256,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		wb->box.size.y = 21;
 		colorWidget->container->addChild(wb);
 
-		optionWidget = Widget::create<Widget>(Vec(0, 35));
+		optionWidget = Widget::create<VirtualWidget>(Vec(0, 35));
 		optionWidget->box.size.x = box.size.x - 20;
 		optionWidget->box.size.y = box.size.y - 65;
 		optionWidget->visible = false;
@@ -270,6 +357,12 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightSlider->value = 0.1;
 		highlightSlider->defaultValue = 0.1;
 		optionWidget->addChild(highlightSlider);
+
+		editWidget = Widget::create<VirtualWidget>(Vec(0, 35));
+		editWidget->box.size.x = box.size.x - 20;
+		editWidget->box.size.y = box.size.y - 65;
+		editWidget->visible = false;
+		backPanel->addChild(editWidget);
 
 		LoadSettings();
 
@@ -428,11 +521,20 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	void Colors() {
 		colorWidget->visible = true;
 		optionWidget->visible = false;
+		editWidget->visible = false;
 	}
 
 	void Options() {
 		colorWidget->visible = false;
 		optionWidget->visible = true;
+		editWidget->visible = false;
+	}
+
+	void Edit(WMWireButton *wmb) {
+		colorWidget->visible = false;
+		optionWidget->visible = false;
+		editWidget->visible = true;
+		editingColor = wmb;
 	}
 
 	void SetHighlight(int status) {
@@ -571,6 +673,16 @@ void WMColorIcon::onAction(EventAction &e) {
 void WMHighlightButton::onAction(EventAction &e) {
 	wmw->SetHighlight(status);
 	wmw->SaveSettings();
+}
+
+void WMWireEdit::onAction(EventAction &e) {
+	wmb->wmc->wmw->Edit(wmb);
+}
+
+void WMWireUp::onAction(EventAction &e) {
+}
+
+void WMWireDown::onAction(EventAction &e) {
 }
 
 Model *modelWireManager = Model::create<Module, WireManagerWidget>("Submarine (Utilities)", "WireManager", "Wire Manager", UTILITY_TAG);
