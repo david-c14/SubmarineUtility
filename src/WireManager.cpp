@@ -257,6 +257,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	VirtualWidget *optionWidget;
 	WMEditWidget *editWidget;
 	WMDeleteWidget *deleteWidget;
+	WMDeleteButton *deleteButton;
 	
 	WMHighlightButton *highlightOff;
 	WMHighlightButton *highlightLow;
@@ -462,7 +463,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		cancelButton->label = "Cancel";
 		editWidget->addChild(cancelButton);
 	
-		WMDeleteButton *deleteButton = Widget::create<WMDeleteButton>(Vec(box.size.x - 80, box.size.y - 130));
+		deleteButton = Widget::create<WMDeleteButton>(Vec(box.size.x - 80, box.size.y - 130));
 		deleteButton->wmw = this;
 		deleteButton->box.size.x = 55;
 		deleteButton->box.size.y = 19;
@@ -676,6 +677,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		editWidget->visible = true;
 		deleteWidget->visible = false;
 		editingColor = wmb;
+		deleteButton->visible = (wmb != NULL);
 		varyR->defaultValue = varyR->value = wmb?wmb->color.r:0.5;
 		varyG->defaultValue = varyG->value = wmb?wmb->color.g:0.5;
 		varyB->defaultValue = varyB->value = wmb?wmb->color.b:0.5;
