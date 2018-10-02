@@ -217,12 +217,27 @@ struct WMEditWidget : VirtualWidget {
 	void draw(NVGcontext *vg) override;
 };
 
+struct WMDeleteWidget : VirtualWidget {
+	WireManagerWidget *wmw;
+	void draw(NVGcontext *vg) override;
+};
+
 struct WMSaveButton : SubControls::ClickButton {
 	WireManagerWidget *wmw;
 	void onAction(EventAction &e) override;
 };
 
 struct WMCancelButton : SubControls::ClickButton {
+	WireManagerWidget *wmw;
+	void onAction(EventAction &e) override;
+};
+
+struct WMDeleteButton : SubControls::ClickButton {
+	WireManagerWidget *wmw;
+	void onAction(EventAction &e) override;
+};
+
+struct WMOKButton : SubControls::ClickButton {
 	WireManagerWidget *wmw;
 	void onAction(EventAction &e) override;
 };
@@ -241,6 +256,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	ScrollWidget *colorWidget;
 	VirtualWidget *optionWidget;
 	WMEditWidget *editWidget;
+	WMDeleteWidget *deleteWidget;
 	
 	WMHighlightButton *highlightOff;
 	WMHighlightButton *highlightLow;
@@ -445,7 +461,41 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		cancelButton->box.size.y = 19;
 		cancelButton->label = "Cancel";
 		editWidget->addChild(cancelButton);
+	
+		WMDeleteButton *deleteButton = Widget::create<WMDeleteButton>(Vec(box.size.x - 80, box.size.y - 130));
+		deleteButton->wmw = this;
+		deleteButton->box.size.x = 55;
+		deleteButton->box.size.y = 19;
+		deleteButton->label = "Delete...";
+		editWidget->addChild(deleteButton);
 
+		deleteWidget = Widget::create<WMDeleteWidget>(Vec(0, 35));
+		deleteWidget->wmw = this;
+		deleteWidget->box.size.x = box.size.x - 20;
+		deleteWidget->box.size.y = box.size.y - 65;
+		deleteWidget->visible = false;
+		backPanel->addChild(deleteWidget);
+
+		label = Widget::create<SubControls::Label>(Vec(25, 195));
+		label->label = "Delete Color?";
+		label->box.size.x = box.size.x - 40;
+		label->box.size.y = 19;
+		deleteWidget->addChild(label);
+
+		WMOKButton *okButton = Widget::create<WMOKButton>(Vec(5, box.size.y - 90));
+		okButton->wmw = this;
+		okButton->box.size.x = 55;
+		okButton->box.size.y = 19;
+		okButton->label = "Okay";
+		deleteWidget->addChild(okButton);
+
+		cancelButton = Widget::create<WMCancelButton>(Vec(box.size.x - 80, box.size.y - 90));
+		cancelButton->wmw = this;
+		cancelButton->box.size.x = 55;
+		cancelButton->box.size.y = 19;
+		cancelButton->label = "Cancel";
+		deleteWidget->addChild(cancelButton);
+	
 		LoadSettings();
 
 		wireCount = gRackWidget->wireContainer->children.size();
@@ -473,7 +523,13 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		AddColor(nvgRGB(0x0c, 0x8e, 0x15), true);
 		AddColor(nvgRGB(0x09, 0x86, 0xad), true);
 		AddColor(nvgRGB(0xff, 0xae, 0xc9), false);
-	}
+      		AddColor(nvgRGB(0xb7, 0x00, 0xb5), false);
+      		AddColor(nvgRGB(0x80, 0x80, 0x80), false);
+      		AddColor(nvgRGB(0xff, 0xff, 0xff), false);
+      		AddColor(nvgRGB(0x10, 0x0f, 0x12), false);
+      		AddColor(nvgRGB(0xff, 0x99, 0x41), false);
+      		AddColor(nvgRGB(0x80, 0x36, 0x10), false);
+    	}
 
 	NVGcolor findColor() {
 		auto vi = colorWidget->container->children.begin();
@@ -604,22 +660,32 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		colorWidget->visible = true;
 		optionWidget->visible = false;
 		editWidget->visible = false;
+		deleteWidget->visible = false;
 	}
 
 	void Options() {
 		colorWidget->visible = false;
 		optionWidget->visible = true;
 		editWidget->visible = false;
+		deleteWidget->visible = false;
 	}
 
 	void Edit(WMWireButton *wmb) {
 		colorWidget->visible = false;
 		optionWidget->visible = false;
 		editWidget->visible = true;
+		deleteWidget->visible = false;
 		editingColor = wmb;
 		varyR->defaultValue = varyR->value = wmb?wmb->color.r:0.5;
 		varyG->defaultValue = varyG->value = wmb?wmb->color.g:0.5;
 		varyB->defaultValue = varyB->value = wmb?wmb->color.b:0.5;
+	}
+
+	void Delete() {
+		colorWidget->visible = false;
+		optionWidget->visible = false;
+		editWidget->visible = false;
+		deleteWidget->visible = true;
 	}
 
 	void SetHighlight(int status) {
@@ -737,6 +803,13 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		SaveSettings();
 	}
 
+	void Reflow() {
+		float pos = 0.0f;
+		for (Widget *w : colorWidget->container->children) {
+			w->box.pos.y = pos;
+			pos += w->box.size.y;
+		}
+	}
 };
 
 void WMWireCheck::onAction(EventAction &e) {
@@ -842,6 +915,40 @@ void WMEditWidget::draw(NVGcontext *vg) {
 	VirtualWidget::draw(vg);
 }
 
+void WMDeleteWidget::draw(NVGcontext *vg) {
+	NVGcolor color = wmw->editingColor?wmw->editingColor->color:nvgRGB(0,0,0);
+	NVGcolor colorOutline = nvgLerpRGBA(color, nvgRGBf(0.0, 0.0, 0.0), 0.5);
+
+	nvgBeginPath(vg);
+	nvgMoveTo(vg, 12, 12);
+	nvgQuadTo(vg, box.size.x / 2, 150, box.size.x - 12, 12);
+	nvgStrokeColor(vg, colorOutline);
+	nvgStrokeWidth(vg, 5);
+	nvgStroke(vg);
+
+	nvgStrokeColor(vg, color);
+	nvgStrokeWidth(vg, 3);
+	nvgStroke(vg);
+
+	nvgBeginPath(vg);
+	nvgCircle(vg, 12, 12, 9);
+	nvgCircle(vg, box.size.x - 12, 12, 9);
+	nvgFillColor(vg, color);
+	nvgFill(vg);
+
+	nvgStrokeWidth(vg, 1.0);
+	nvgStrokeColor(vg, colorOutline);
+	nvgStroke(vg);
+
+	nvgBeginPath(vg);
+	nvgCircle(vg, 12, 12, 5);
+	nvgCircle(vg, box.size.x - 12, 12, 5);
+	nvgFillColor(vg, nvgRGBf(0.0, 0.0, 0.0));
+	nvgFill(vg);
+
+	VirtualWidget::draw(vg);
+}
+
 void WMSaveButton::onAction(EventAction &e) {
 	if (wmw->editingColor) {
 		wmw->editingColor->color = nvgRGBAf(wmw->varyR->value, wmw->varyG->value, wmw->varyB->value, 1.0f);
@@ -859,6 +966,21 @@ void WMCancelButton::onAction(EventAction &e) {
 
 void WMWireAdd::onAction(EventAction &e) {
 	wmw->Edit(NULL);
+}
+
+void WMDeleteButton::onAction(EventAction &e) {
+	if (!wmw->editingColor)
+		return;
+	wmw->Delete();
+}
+
+void WMOKButton::onAction(EventAction &e) {
+	if (!wmw->editingColor)
+		return;
+	wmw->colorWidget->container->removeChild(wmw->editingColor);
+	wmw->Reflow();
+	wmw->SaveSettings();
+	wmw->Colors();
 }
 
 Model *modelWireManager = Model::create<Module, WireManagerWidget>("Submarine (Utilities)", "WireManager", "Wire Manager", UTILITY_TAG);
