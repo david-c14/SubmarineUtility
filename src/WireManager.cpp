@@ -821,6 +821,24 @@ void WMEditWidget::draw(NVGcontext *vg) {
 	nvgFillColor(vg, nvgRGBf(0.0, 0.0, 0.0));
 	nvgFill(vg);
 
+	NVGpaint grad = nvgLinearGradient(vg, 10, 95, box.size.x - 10, 95, nvgRGBf(0.0f, wmw->varyG->value, wmw->varyB->value), nvgRGBf(1.0f, wmw->varyG->value, wmw->varyB->value));
+	nvgBeginPath(vg);
+	nvgFillPaint(vg, grad);
+	nvgRect(vg, 10, 95, box.size.x - 20, 10);
+	nvgFill(vg);
+
+	grad = nvgLinearGradient(vg, 10, 135, box.size.x - 10, 135, nvgRGBf(wmw->varyR->value, 0.0f, wmw->varyB->value), nvgRGBf(wmw->varyR->value, 1.0f, wmw->varyB->value));
+	nvgBeginPath(vg);
+	nvgFillPaint(vg, grad);
+	nvgRect(vg, 10, 135, box.size.x - 20, 10);
+	nvgFill(vg);
+
+	grad = nvgLinearGradient(vg, 10, 175, box.size.x - 10, 175, nvgRGBf(wmw->varyR->value, wmw->varyG->value, 0.0f), nvgRGBf(wmw->varyR->value, wmw->varyG->value, 1.0f));
+	nvgBeginPath(vg);
+	nvgFillPaint(vg, grad);
+	nvgRect(vg, 10, 175, box.size.x - 20, 10);
+	nvgFill(vg);
+
 	VirtualWidget::draw(vg);
 }
 
