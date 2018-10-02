@@ -47,6 +47,21 @@ struct WMWireCheck : SubControls::CheckButton {
 	void onAction(EventAction &e) override;
 };
 
+struct WMWireAdd : SubControls::ButtonBase {
+	WireManagerWidget *wmw;
+	void onAction(EventAction &e) override;
+	void draw(NVGcontext *vg) override {
+		nvgBeginPath(vg);
+		nvgFillColor(vg, nvgRGB(0xff, 0xff, 0xff));
+		nvgRect(vg, box.size.x / 2 - 1.5, 2, 3, box.size.y - 4);
+		nvgFill(vg);
+		nvgBeginPath(vg);
+		nvgRect(vg, 2, box.size.y / 2 - 1.5, box.size.x - 4, 3);
+		nvgFill(vg);
+		SubControls::ButtonBase::draw(vg);
+	}
+};
+
 struct WMWireEdit;
 struct WMWireUp;
 struct WMWireDown;
@@ -97,11 +112,16 @@ struct WMCheckAll : SubControls::CheckButton {
 
 struct WMManageButton : VirtualWidget {
 	WMCheckAll *wmc;
+	WMWireAdd *wma;
 	WMManageButton() {
 		wmc = Widget::create<WMCheckAll>(Vec(1,1));
 		wmc->box.size.x = 19;
 		wmc->box.size.y = 19;
 		addChild(wmc);
+		wma = Widget::create<WMWireAdd>(Vec(108, 1));
+		wma->box.size.x = 19;
+		wma->box.size.y = 19;
+		addChild(wma);
 	}
 }; 
 
@@ -271,6 +291,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 		WMManageButton *wb = Widget::create<WMManageButton>(Vec(0, 0));
 		wb->wmc->wmw = this;
+		wb->wma->wmw = this;
 		wb->box.size.x = colorWidget->box.size.x;
 		wb->box.size.y = 21;
 		colorWidget->container->addChild(wb);
@@ -807,12 +828,19 @@ void WMSaveButton::onAction(EventAction &e) {
 	if (wmw->editingColor) {
 		wmw->editingColor->color = nvgRGBAf(wmw->varyR->value, wmw->varyG->value, wmw->varyB->value, 1.0f);
 	}
+	else {
+		wmw->AddColor(nvgRGBAf(wmw->varyR->value, wmw->varyG->value, wmw->varyB->value, 1.0f), false);
+	}
 	wmw->SaveSettings();
 	wmw->Colors();
 }
 
 void WMCancelButton::onAction(EventAction &e) {
 	wmw->Colors();
+}
+
+void WMWireAdd::onAction(EventAction &e) {
+	wmw->Edit(NULL);
 }
 
 Model *modelWireManager = Model::create<Module, WireManagerWidget>("Submarine (Utilities)", "WireManager", "Wire Manager", UTILITY_TAG);
