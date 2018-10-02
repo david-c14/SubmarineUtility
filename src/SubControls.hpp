@@ -80,8 +80,8 @@ struct ClickButton : ButtonBase {
 		if (!label.empty()) {
 			nvgFontFaceId(vg, gGuiFont->handle);
 			nvgFontSize(vg, 13);
-			nvgTextAlign(vg, NVG_ALIGN_MIDDLE);
-			nvgText(vg, 21, box.size.y / 2, label.c_str(), NULL);
+			nvgTextAlign(vg, NVG_ALIGN_MIDDLE | NVG_ALIGN_CENTER);
+			nvgText(vg, box.size.x / 2, box.size.y / 2, label.c_str(), NULL);
 		}
 		nvgBeginPath(vg);
 		nvgRect(vg, 0.5, 0.5, box.size.x - 1, box.size.y - 1);

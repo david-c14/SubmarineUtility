@@ -192,6 +192,21 @@ struct WMSlider : SubControls::Slider {
 	void onAction(EventAction &e) override;
 };
 
+struct WMEditWidget : VirtualWidget {
+	WireManagerWidget *wmw;
+	void draw(NVGcontext *vg) override;
+};
+
+struct WMSaveButton : SubControls::ClickButton {
+	WireManagerWidget *wmw;
+	void onAction(EventAction &e) override;
+};
+
+struct WMCancelButton : SubControls::ClickButton {
+	WireManagerWidget *wmw;
+	void onAction(EventAction &e) override;
+};
+
 struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 	enum {
@@ -205,7 +220,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	WMMinimizeIcon *minimizeIcon;
 	ScrollWidget *colorWidget;
 	VirtualWidget *optionWidget;
-	VirtualWidget *editWidget;
+	WMEditWidget *editWidget;
 	
 	WMHighlightButton *highlightOff;
 	WMHighlightButton *highlightLow;
@@ -215,7 +230,11 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	WMSlider *varyH;
 	WMSlider *varyS;
 	WMSlider *varyL;
-	
+
+	SubControls::Slider *varyR;
+	SubControls::Slider *varyG;
+	SubControls::Slider *varyB;
+
 	int wireCount = 0;
 	Widget *lastWire = NULL;
 	int highlight = 0;
@@ -358,11 +377,53 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightSlider->defaultValue = 0.1;
 		optionWidget->addChild(highlightSlider);
 
-		editWidget = Widget::create<VirtualWidget>(Vec(0, 35));
+		editWidget = Widget::create<WMEditWidget>(Vec(0, 35));
+		editWidget->wmw = this;
 		editWidget->box.size.x = box.size.x - 20;
 		editWidget->box.size.y = box.size.y - 65;
 		editWidget->visible = false;
 		backPanel->addChild(editWidget);
+	
+		varyR = Widget::create<SubControls::Slider>(Vec(10, 105));
+		varyR->box.size.x = box.size.x - 40;
+		varyR->box.size.y = 19;
+		varyR->minValue = 0.0f;
+		varyR->maxValue = 1.0f;
+		varyR->value = 0.5f;
+		varyR->defaultValue = 0.5f;
+		editWidget->addChild(varyR);
+
+		varyG = Widget::create<SubControls::Slider>(Vec(10, 145));
+		varyG->box.size.x = box.size.x - 40;
+		varyG->box.size.y = 19;
+		varyG->minValue = 0.0f;
+		varyG->maxValue = 1.0f;
+		varyG->value = 0.5f;
+		varyG->defaultValue = 0.5f;
+		editWidget->addChild(varyG);
+
+		varyB = Widget::create<SubControls::Slider>(Vec(10, 185));
+		varyB->box.size.x = box.size.x - 40;
+		varyB->box.size.y = 19;
+		varyB->minValue = 0.0f;
+		varyB->maxValue = 1.0f;
+		varyB->value = 0.5f;
+		varyB->defaultValue = 0.5f;
+		editWidget->addChild(varyB);
+
+		WMSaveButton *saveButton = Widget::create<WMSaveButton>(Vec(5, box.size.y - 90));
+		saveButton->wmw = this;
+		saveButton->box.size.x = 55;
+		saveButton->box.size.y = 19;
+		saveButton->label = "Save";
+		editWidget->addChild(saveButton);
+
+		WMCancelButton *cancelButton = Widget::create<WMCancelButton>(Vec(box.size.x - 80, box.size.y - 90));
+		cancelButton->wmw = this;
+		cancelButton->box.size.x = 55;
+		cancelButton->box.size.y = 19;
+		cancelButton->label = "Cancel";
+		editWidget->addChild(cancelButton);
 
 		LoadSettings();
 
@@ -535,6 +596,9 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		optionWidget->visible = false;
 		editWidget->visible = true;
 		editingColor = wmb;
+		varyR->defaultValue = varyR->value = wmb?wmb->color.r:0.5;
+		varyG->defaultValue = varyG->value = wmb?wmb->color.g:0.5;
+		varyB->defaultValue = varyB->value = wmb?wmb->color.b:0.5;
 	}
 
 	void SetHighlight(int status) {
@@ -703,6 +767,52 @@ void WMWireUp::onAction(EventAction &e) {
 
 void WMWireDown::onAction(EventAction &e) {
 	wmb->wmc->wmw->Swap(wmb->box.pos.y / 21);
+}
+
+void WMEditWidget::draw(NVGcontext *vg) {
+	NVGcolor color = nvgRGBAf(wmw->varyR->value, wmw->varyG->value, wmw->varyB->value, 1.0f);
+	NVGcolor colorOutline = nvgLerpRGBA(color, nvgRGBf(0.0, 0.0, 0.0), 0.5);
+
+	nvgBeginPath(vg);
+	nvgMoveTo(vg, 12, 12);
+	nvgQuadTo(vg, box.size.x / 2, 150, box.size.x - 12, 12);
+	nvgStrokeColor(vg, colorOutline);
+	nvgStrokeWidth(vg, 5);
+	nvgStroke(vg);
+
+	nvgStrokeColor(vg, color);
+	nvgStrokeWidth(vg, 3);
+	nvgStroke(vg);
+
+	nvgBeginPath(vg);
+	nvgCircle(vg, 12, 12, 9);
+	nvgCircle(vg, box.size.x - 12, 12, 9);
+	nvgFillColor(vg, color);
+	nvgFill(vg);
+
+	nvgStrokeWidth(vg, 1.0);
+	nvgStrokeColor(vg, colorOutline);
+	nvgStroke(vg);
+
+	nvgBeginPath(vg);
+	nvgCircle(vg, 12, 12, 5);
+	nvgCircle(vg, box.size.x - 12, 12, 5);
+	nvgFillColor(vg, nvgRGBf(0.0, 0.0, 0.0));
+	nvgFill(vg);
+
+	VirtualWidget::draw(vg);
+}
+
+void WMSaveButton::onAction(EventAction &e) {
+	if (wmw->editingColor) {
+		wmw->editingColor->color = nvgRGBAf(wmw->varyR->value, wmw->varyG->value, wmw->varyB->value, 1.0f);
+	}
+	wmw->SaveSettings();
+	wmw->Colors();
+}
+
+void WMCancelButton::onAction(EventAction &e) {
+	wmw->Colors();
 }
 
 Model *modelWireManager = Model::create<Module, WireManagerWidget>("Submarine (Utilities)", "WireManager", "Wire Manager", UTILITY_TAG);
