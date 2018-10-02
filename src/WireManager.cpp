@@ -63,7 +63,7 @@ struct WMWireButton : VirtualWidget {
 
 		nvgBeginPath(vg);
 		nvgMoveTo(vg, 32, box.size.y / 2);
-		nvgLineTo(vg, box.size.x - 30, box.size.y / 2);
+		nvgLineTo(vg, box.size.x - 40, box.size.y / 2);
 		nvgStrokeColor(vg, colorOutline);
 		nvgStrokeWidth(vg, 5);
 		nvgStroke(vg);
@@ -170,17 +170,17 @@ WMWireButton::WMWireButton() {
 	wmc->box.size.x = 19;
 	wmc->box.size.y = 19;
 	addChild(wmc);
-	wme = Widget::create<WMWireEdit>(Vec(105,1));
+	wme = Widget::create<WMWireEdit>(Vec(108,1));
 	wme->box.size.x = 19;
 	wme->box.size.y = 19;
 	wme->wmb = this; 
 	addChild(wme);
-	wmu = Widget::create<WMWireUp>(Vec(89,1));
+	wmu = Widget::create<WMWireUp>(Vec(92,2));
 	wmu->box.size.x = 15;
 	wmu->box.size.y = 7;
 	wmu->wmb = this;
 	addChild(wmu);
-	wmd = Widget::create<WMWireDown>(Vec(89,10));
+	wmd = Widget::create<WMWireDown>(Vec(92,12));
 	wmd->box.size.x = 15;
 	wmd->box.size.y = 7;
 	wmd->wmb = this;
@@ -634,6 +634,24 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		}
 		json_decref(rootJ);
 	}
+
+	void Swap(float x) {
+		unsigned int i = (unsigned int)x;
+		if (i < 1) return;
+		if (i > colorWidget->container->children.size() - 2) return;	
+		auto vi = std::begin(colorWidget->container->children);
+		std::advance(vi, i);
+		WMWireButton *wb1 = dynamic_cast<WMWireButton *>(* vi++);
+		WMWireButton *wb2 = dynamic_cast<WMWireButton *>(* vi);
+		NVGcolor col = wb1->color;
+		wb1->color = wb2->color;
+		wb2->color = col;
+		int sel = wb1->wmc->selected;
+		wb1->wmc->selected = wb2->wmc->selected;
+		wb2->wmc->selected = sel;
+		SaveSettings();
+	}
+
 };
 
 void WMWireCheck::onAction(EventAction &e) {
@@ -680,9 +698,11 @@ void WMWireEdit::onAction(EventAction &e) {
 }
 
 void WMWireUp::onAction(EventAction &e) {
+	wmb->wmc->wmw->Swap(wmb->box.pos.y / 21 - 1);
 }
 
 void WMWireDown::onAction(EventAction &e) {
+	wmb->wmc->wmw->Swap(wmb->box.pos.y / 21);
 }
 
 Model *modelWireManager = Model::create<Module, WireManagerWidget>("Submarine (Utilities)", "WireManager", "Wire Manager", UTILITY_TAG);
