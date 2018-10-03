@@ -207,7 +207,7 @@ WMWireButton::WMWireButton() {
 	addChild(wmd);
 }
 
-struct WMSlider : SubControls::Slider {
+struct WMSlider : SubControls::HSlider {
 	WireManagerWidget *wmw;
 	void onAction(EventAction &e) override;
 };
@@ -268,9 +268,9 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	WMSlider *varyS;
 	WMSlider *varyL;
 
-	SubControls::Slider *varyR;
-	SubControls::Slider *varyG;
-	SubControls::Slider *varyB;
+	SubControls::HSlider *varyR;
+	SubControls::HSlider *varyG;
+	SubControls::HSlider *varyB;
 
 	int wireCount = 0;
 	Widget *lastWire = NULL;
@@ -422,7 +422,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		editWidget->visible = false;
 		backPanel->addChild(editWidget);
 	
-		varyR = Widget::create<SubControls::Slider>(Vec(10, 105));
+		varyR = Widget::create<SubControls::HSlider>(Vec(10, 105));
 		varyR->box.size.x = box.size.x - 40;
 		varyR->box.size.y = 19;
 		varyR->minValue = 0.0f;
@@ -431,7 +431,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		varyR->defaultValue = 0.5f;
 		editWidget->addChild(varyR);
 
-		varyG = Widget::create<SubControls::Slider>(Vec(10, 145));
+		varyG = Widget::create<SubControls::HSlider>(Vec(10, 145));
 		varyG->box.size.x = box.size.x - 40;
 		varyG->box.size.y = 19;
 		varyG->minValue = 0.0f;
@@ -440,7 +440,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		varyG->defaultValue = 0.5f;
 		editWidget->addChild(varyG);
 
-		varyB = Widget::create<SubControls::Slider>(Vec(10, 185));
+		varyB = Widget::create<SubControls::HSlider>(Vec(10, 185));
 		varyB->box.size.x = box.size.x - 40;
 		varyB->box.size.y = 19;
 		varyB->minValue = 0.0f;

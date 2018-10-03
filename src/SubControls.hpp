@@ -140,6 +140,13 @@ struct Slider : Knob {
 	}
 };
 
+struct HSlider : Slider {
+	void onDragMove(EventDragMove &e) override {
+		e.mouseRel.y = -e.mouseRel.x;
+		Knob::onDragMove(e);
+	}
+};
+
 struct SubLogo : SVGWidget{};
 
 struct ModuleDragHandle;
