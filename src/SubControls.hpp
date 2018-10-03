@@ -107,6 +107,7 @@ struct Label : TransparentWidget {
 };
 
 struct Slider : Knob {
+	int transparent = false;
 	void draw(NVGcontext *vg) override {
 		Vec minHandlePos;
 		Vec maxHandlePos;
@@ -114,12 +115,12 @@ struct Slider : Knob {
 		float height;
 		if (box.size.x < box.size.y) {
 			width = box.size.x;
-			height = box.size.x / 2;
+			height = 10;
 			minHandlePos = Vec(box.size.x / 2, height / 2);
 			maxHandlePos = Vec(box.size.x / 2, box.size.y - height / 2);
 		}
 		else {
-			width = box.size.y / 2;
+			width = 10;
 			height = box.size.y;
 			minHandlePos = Vec(width / 2, box.size.y / 2);
 			maxHandlePos = Vec(box.size.x - width / 2, box.size.y / 2);
@@ -128,14 +129,15 @@ struct Slider : Knob {
 		nvgFillColor(vg, nvgRGB(0, 0, 0));	
 		nvgStrokeColor(vg, nvgRGB(0xff, 0xff, 0xff));
 		nvgStrokeWidth(vg, 1);
+		if (!transparent) {
+			nvgBeginPath(vg);
+			nvgMoveTo(vg, minHandlePos.x, minHandlePos.y);
+			nvgLineTo(vg, maxHandlePos.x, maxHandlePos.y);
+			nvgStroke(vg);
+		}
 		nvgBeginPath(vg);
-		nvgMoveTo(vg, minHandlePos.x, minHandlePos.y);
-		nvgLineTo(vg, maxHandlePos.x, maxHandlePos.y);
-		nvgStroke(vg);
-		nvgBeginPath(vg);
-		
 		nvgRect(vg, pos.x - width / 2 + 0.5, pos.y - height / 2 + 0.5 , width - 1, height - 1);
-		nvgFill(vg);
+		if (!transparent) nvgFill(vg);
 		nvgStroke(vg);
 	}
 };

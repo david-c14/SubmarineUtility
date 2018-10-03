@@ -423,6 +423,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		backPanel->addChild(editWidget);
 	
 		varyR = Widget::create<SubControls::HSlider>(Vec(10, 105));
+		varyR->transparent = true;
 		varyR->box.size.x = box.size.x - 40;
 		varyR->box.size.y = 19;
 		varyR->minValue = 0.0f;
@@ -432,6 +433,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		editWidget->addChild(varyR);
 
 		varyG = Widget::create<SubControls::HSlider>(Vec(10, 145));
+		varyG->transparent = true;
 		varyG->box.size.x = box.size.x - 40;
 		varyG->box.size.y = 19;
 		varyG->minValue = 0.0f;
@@ -441,6 +443,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		editWidget->addChild(varyG);
 
 		varyB = Widget::create<SubControls::HSlider>(Vec(10, 185));
+		varyB->transparent = true;
 		varyB->box.size.x = box.size.x - 40;
 		varyB->box.size.y = 19;
 		varyB->minValue = 0.0f;
@@ -895,23 +898,26 @@ void WMEditWidget::draw(NVGcontext *vg) {
 	nvgCircle(vg, box.size.x - 12, 12, 5);
 	nvgFillColor(vg, nvgRGBf(0.0, 0.0, 0.0));
 	nvgFill(vg);
+	
+	float l = wmw->varyR->box.pos.x + 5;
+	float r = wmw->varyR->box.size.x - 10;
 
-	NVGpaint grad = nvgLinearGradient(vg, 10, 95, box.size.x - 10, 95, nvgRGBf(0.0f, wmw->varyG->value, wmw->varyB->value), nvgRGBf(1.0f, wmw->varyG->value, wmw->varyB->value));
+	NVGpaint grad = nvgLinearGradient(vg, l, 109.5, l + r, 109.5, nvgRGBf(0.0f, wmw->varyG->value, wmw->varyB->value), nvgRGBf(1.0f, wmw->varyG->value, wmw->varyB->value));
 	nvgBeginPath(vg);
 	nvgFillPaint(vg, grad);
-	nvgRect(vg, 10, 95, box.size.x - 20, 10);
+	nvgRect(vg, l - 5, 109.5, r + 10, 10);
 	nvgFill(vg);
 
-	grad = nvgLinearGradient(vg, 10, 135, box.size.x - 10, 135, nvgRGBf(wmw->varyR->value, 0.0f, wmw->varyB->value), nvgRGBf(wmw->varyR->value, 1.0f, wmw->varyB->value));
+	grad = nvgLinearGradient(vg, l, 149.5, l + r, 149.5, nvgRGBf(wmw->varyR->value, 0.0f, wmw->varyB->value), nvgRGBf(wmw->varyR->value, 1.0f, wmw->varyB->value));
 	nvgBeginPath(vg);
 	nvgFillPaint(vg, grad);
-	nvgRect(vg, 10, 135, box.size.x - 20, 10);
+	nvgRect(vg, l - 5, 149.5, r + 10, 10);
 	nvgFill(vg);
 
-	grad = nvgLinearGradient(vg, 10, 175, box.size.x - 10, 175, nvgRGBf(wmw->varyR->value, wmw->varyG->value, 0.0f), nvgRGBf(wmw->varyR->value, wmw->varyG->value, 1.0f));
+	grad = nvgLinearGradient(vg, l, 189.5, l + r, 189.5, nvgRGBf(wmw->varyR->value, wmw->varyG->value, 0.0f), nvgRGBf(wmw->varyR->value, wmw->varyG->value, 1.0f));
 	nvgBeginPath(vg);
 	nvgFillPaint(vg, grad);
-	nvgRect(vg, 10, 175, box.size.x - 20, 10);
+	nvgRect(vg, l - 5, 189.5, r + 10, 10);
 	nvgFill(vg);
 
 	VirtualWidget::draw(vg);
