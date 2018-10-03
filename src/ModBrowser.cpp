@@ -3,6 +3,7 @@
 #include <algorithm>
 #include "window.hpp"
 #include "osdialog.h"
+#include "util/common.hpp"
 
 struct ModBrowserWidget;
 
@@ -268,7 +269,7 @@ struct ModBrowserWidget : SubControls::SizeableModuleWidget {
 			}
 		}
 		// Sort Plugins/Authors
-		pluginList.sort([](std::shared_ptr<PluginElement> pe1, std::shared_ptr<PluginElement> pe2) { return pe1->label.compare(pe2->label) < 0; } );
+		pluginList.sort([](std::shared_ptr<PluginElement> pe1, std::shared_ptr<PluginElement> pe2) { return stringLowercase(pe1->label).compare(stringLowercase(pe2->label)) < 0; } );
 		
 		AddPlugins();
 	}
