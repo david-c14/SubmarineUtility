@@ -1,6 +1,6 @@
 # Wire Manager
 
-The wire manager offers the ability to choose more colours for the patch cables that you use in your patches. It also has highlighting options 
+The wire manager offers the ability to choose more colors for the patch cables that you use in your patches. It also has highlighting options 
 which some users may find useful in tracing wires around the patch.
 
 ## ![](../res/colors.svg)&nbsp;Colors
