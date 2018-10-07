@@ -277,6 +277,8 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 	int highlight = 0;
 	unsigned int newColorIndex = 1;
 	WMWireButton *editingColor;
+	ModuleWidget *lastHover = NULL;
+	int highlightIsDirty = true;
 
 	WireManagerWidget(Module *module) : SubControls::SizeableModuleWidget(module) {
 		moduleName = "Wire Manager";
@@ -507,6 +509,13 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 			lastWire = gRackWidget->wireContainer->children.back();
 	}
 
+	void _delete() override {
+		if (highlight) {
+			SetHighlight(HIGHLIGHT_OFF);
+			highlightWires();
+		}
+	}
+
 	void ResetIcons() {
 	}
 
@@ -535,7 +544,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
       		AddColor(nvgRGB(0x80, 0x36, 0x10), false);
     	}
 
-	NVGcolor findColor() {
+	NVGcolor findColor(NVGcolor color) {
 		auto vi = colorWidget->container->children.begin();
 		std::advance(vi, newColorIndex);
 		for (int i = 0; i < 2; i++) {
@@ -551,7 +560,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 			vi = colorWidget->container->children.begin();
 			std::advance(vi, newColorIndex);
 		}
-		return nvgRGB(0x80, 0x80, 0x80);
+		return color;
 	}
 
 	NVGcolor varyColor(NVGcolor color) {
@@ -591,7 +600,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 
 	void colorWire(Widget *widget) {
 		WireWidget *wire = dynamic_cast<WireWidget *>(widget);
-		wire->color = findColor();
+		wire->color = findColor(wire->color);
 		if (varyCheck->selected) {
 			wire->color = varyColor(wire->color);
 		}
@@ -621,9 +630,10 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 				lastWire = gRackWidget->wireContainer->children.back();
 			else
 				lastWire = NULL;
+			highlightIsDirty = true;
 		}
-		if (highlight)
-			highlightWires();
+		highlightWires();
+		ModuleWidget::step();
 	}
 	void highlightWires() {
 		ModuleWidget *focusedModuleWidget = nullptr;
@@ -634,30 +644,36 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 					focusedModuleWidget = gHoveredWidget->getAncestorOfType<ModuleWidget>();
 			}
 		}
-		for (Widget *widget : gRackWidget->wireContainer->children) {
-			WireWidget *wire = dynamic_cast<WireWidget *>(widget);
-			if (focusedModuleWidget) {
-				if (!wire->outputPort || !wire->inputPort) {
-					wire->color = nvgTransRGBA(wire->color, 0xFF);
-				}
-				else if (wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
-					wire->color = nvgTransRGBA(wire->color, 0xFF);
-				}
-				else if (wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
-					wire->color = nvgTransRGBA(wire->color, 0xFF);
+		if (focusedModuleWidget != lastHover) {
+			lastHover = focusedModuleWidget;
+			highlightIsDirty = true;
+		}
+		if (highlightIsDirty) {
+			highlightIsDirty = false;
+			for (Widget *widget : gRackWidget->wireContainer->children) {
+				WireWidget *wire = dynamic_cast<WireWidget *>(widget);
+				if (focusedModuleWidget) {
+					if (!wire->outputPort || !wire->inputPort) {
+						wire->color = nvgTransRGBA(wire->color, 0xFF);
+					}
+					else if (wire->outputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+						wire->color = nvgTransRGBA(wire->color, 0xFF);
+					}
+					else if (wire->inputPort->getAncestorOfType<ModuleWidget>() == focusedModuleWidget) {
+						wire->color = nvgTransRGBA(wire->color, 0xFF);
+					}
+					else {
+						wire->color = nvgTransRGBAf(wire->color, highlightSlider->value);
+					}
 				}
 				else {
-					wire->color = nvgTransRGBAf(wire->color, highlightSlider->value);
+					if (highlight == 2)
+						wire->color = nvgTransRGBAf(wire->color, highlightSlider->value);
+					else
+						wire->color = nvgTransRGBA(wire->color, 0xFF);
 				}
 			}
-			else {
-				if (highlight == 2)
-					wire->color = nvgTransRGBAf(wire->color, highlightSlider->value);
-				else
-					wire->color = nvgTransRGBA(wire->color, 0xFF);
-			}
 		}
-		ModuleWidget::step();
 	} 
 
 	void Colors() {
@@ -698,7 +714,7 @@ struct WireManagerWidget : SubControls::SizeableModuleWidget {
 		highlightLow->selected = (highlightLow->status == status);
 		highlightOn->selected = (highlightOn->status == status);
 		highlight = status;
-		highlightWires();
+		highlightIsDirty = true;
 	}
 
 	void SaveSettings() {
@@ -986,6 +1002,7 @@ void WMOKButton::onAction(EventAction &e) {
 	if (!wmw->editingColor)
 		return;
 	wmw->colorWidget->container->removeChild(wmw->editingColor);
+	delete wmw->editingColor;
 	wmw->Reflow();
 	wmw->SaveSettings();
 	wmw->Colors();
