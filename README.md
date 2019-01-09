@@ -1,8 +1,6 @@
 # SubmarineUtility
 Utility Modules for VCVRack
 
-## This plugin is in beta. Use at your own risk.
-
 Important note:
 
 These modules rely on knowledge of VCVRack which goes beyond the published API. The ongoing stability of the code is therefore not guaranteed. At least some of the features of these modules rely on code which is expected to change in future versions of VCVRack, and many other parts are likely to change.
