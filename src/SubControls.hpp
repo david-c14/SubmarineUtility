@@ -144,8 +144,9 @@ struct Slider : Knob {
 
 struct HSlider : Slider {
 	void onDragMove(EventDragMove &e) override {
-		e.mouseRel.y = -e.mouseRel.x;
-		Knob::onDragMove(e);
+		EventDragMove e2 = e;
+		e2.mouseRel = Vec(e.mouseRel.y, -e.mouseRel.x);
+		Knob::onDragMove(e2);
 	}
 };
 
